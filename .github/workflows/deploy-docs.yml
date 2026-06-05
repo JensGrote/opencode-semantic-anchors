@@ -1,0 +1,74 @@
+name: Deploy Documentation to GitHub Pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/docs/**'
+      - 'docToolchainConfig.groovy'
+      - '.github/workflows/deploy-docs.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Setup docToolchain
+        run: |
+          curl -Lo dtcw https://doctoolchain.org/dtcw
+          chmod +x dtcw
+          ./dtcw local install doctoolchain
+      - name: Convert Markdown to AsciiDoc
+        run: ./dtcw exportMarkdown
+        continue-on-error: true
+      - name: Copy converted files
+        run: |
+          find build -name '*.adoc' | while read f; do
+            rel="${f#build/}"
+            mkdir -p "src/docs/$(dirname "$rel")"
+            cp "$f" "src/docs/$rel"
+          done
+      - name: Add jBake headers
+        run: |
+          find src/docs -name '*.adoc' | while read file; do
+            if ! grep -q 'jbake-type' "$file"; then
+              read -r first_line < "$file"
+              case "$(dirname "${file#src/docs/}")" in
+                concepts*) menu="concepts" ;;
+                decisions*) menu="decisions" ;;
+                *) menu="arc42" ;;
+              esac
+              {
+                echo "$first_line"
+                echo ":jbake-type: page"
+                echo ":jbake-status: published"
+                echo ":jbake-menu: $menu"
+                echo ""
+                tail -n +2 "$file"
+              } > "${file}.tmp" && mv "${file}.tmp" "$file"
+            fi
+          done
+      - name: Generate site
+        run: ./dtcw generateSite
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/microsite/output
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
