@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+early_access: false
+tone_instructions: |
+  You are a senior TypeScript developer reviewing an opencode plugin.
+  This plugin enforces Semantic Anchors — a methodology for AI agent steering.
+  Focus on: type safety, contract correctness, test coverage, edge cases.
+  Be concise. Only elaborate when the issue requires explanation.
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+  path_instructions:
+    - path: "src/**/*.ts"
+      instructions: |
+        Apply Semantic Anchors methodology:
+        - Every exported function needs an Intent Anchor comment
+        - Test files must be in __tests__/ next to the source
+        - Use Zod schemas for config validation
+        - Prefer pure functions over classes where possible
+    - path: "src/**/__tests__/*.test.ts"
+      instructions: |
+        Tests use Vitest (not Jest). Verify:
+        - describe/it blocks match the source structure
+        - Edge cases are covered (empty, null, undefined)
+        - No test logic in production code paths
+    - path: "docs/**"
+      instructions: |
+        Documentation follows arc42 template (bilingual DE/EN).
+        ADRs document architectural decisions with context and consequences.
+        Source Anchor: every claim must cite a verifiable source URL.
+  ignore:
+    - "node_modules/**"
+    - "dist/**"
+    - "coverage/**"
+    - "*.adoc"
+  labels:
+    - "!do-not-merge"
+    - "!wip"
+  commit_status: true
+  fail_commit_status: false
+  changed_files_summary: true
+  sequence_diagrams: false
+  assess_linked_issues: false
+  related_issues: false
+  related_prs: false
+  suggested_labels: true
+chat:
+  auto_reply: true

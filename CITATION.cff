@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it as below."
+title: "opencode-semantic-anchors"
+abstract: "Runtime steering plugin for opencode that enforces Semantic Anchors via a YAML-defined contract system with profile-based presets and step confirmation."
+authors:
+  - family-names: Grote
+    given-names: Jens
+    website: "https://github.com/JensGrote"
+repository-code: "https://github.com/JensGrote/opencode-semantic-anchors"
+keywords:
+  - "opencode"
+  - "plugin"
+  - "semantic-anchors"
+  - "ai-steering"
+  - "agent"
+license: "Apache-2.0"
+version: 0.1.0
+date-released: 2026-06-05
