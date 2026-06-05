@@ -16,6 +16,9 @@
 | **Steering Rule** | Eine konfigurierte Verhaltensrichtlinie, die das Plugin zur Laufzeit durchsetzt (z. B. „Step Confirmation nach 3 Tool-Aufrufen"). Synonym zu Structural Coupling Contract. | `docs/04-solution-strategy.md` |
 | **Trigger Pattern** | Die Bedingung, die eine Steering-Regel aktiviert (z. B. `tool.execute.before` mit Aufrufzähler > N). Teil eines Structural Coupling Contract. | `docs/05-building-block-view.md` |
 | **Action** | Was das Plugin tut, wenn ein Trigger auslöst: `allow` (durchlassen), `block` (Error werfen), `warn` (Warnung loggen). | `docs/05-building-block-view.md` |
+| **BLOCK** | Enforcement-Modus, der die Tool-Ausführung verhindert, bis der Benutzer die Contract-Verletzung adressiert. Der Benutzer kann via `/anchor bypass` übersteuern. | `docs/04-solution-strategy.md` |
+| **WARN** | Enforcement-Modus, der die Tool-Ausführung erlaubt, aber eine Erinnerungsnachricht im Log anzeigt. Wird für "weiche" Contracts verwendet, die lenken ohne zu zwingen. | `docs/04-solution-strategy.md` |
+| **Hook** | Ein opencode-Plugin-Lifecycle-Callback, der Ereignisse abfängt (z. B. `tool.execute.before` fängt Tool-Aufrufe ab, `chat.message` fängt Nachrichten ab). Hooks sind die Runtime-Schnittstelle des Plugins zu opencode. | opencode Plugin SDK: https://opencode.ai/docs/plugins |
 | **Mode** | Betriebsmodus eines Contract: `enforce` (aktiv blockieren/warnen) oder `log` (auswerten aber nie blocken — für Tests). | `docs/05-building-block-view.md` |
 
 ## Akronyme und Abkürzungen

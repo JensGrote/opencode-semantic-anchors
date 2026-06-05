@@ -226,3 +226,93 @@ npm uninstall -g @semantic-anchors/opencode-plugin
 | `@opencode-ai/plugin` | ^0.59 | Plugin SDK | Medium — follows opencode releases |
 
 > **Source Anchor (Quelle):** Zod library: https://zod.dev/. js-yaml: https://github.com/nodeca/js-yaml. opencode Plugin SDK Typing: https://opencode.ai/docs/plugins/api.
+
+## 8. Local Documentation Build
+
+The project documentation (arc42 sections, ADRs, concepts) is maintained as Markdown (`.md`) and built into a microsite via **docToolchain + jBake**.
+
+### Source vs. Generated Files
+
+| Directory | Role | Contents | In git? |
+|-----------|------|----------|---------|
+| `docs/` | **Single source of truth** | `.md` files — edit these | ✅ committed |
+| `src/docs/` | **Generated working directory** | `.md` copies + `.adoc` files + jBake build | ❌ gitignored |
+| `build/` | **docToolchain output** | generated `.adoc`, microsite HTML | ❌ gitignored |
+
+**Rule:** Edit only `.md` files in `docs/`. Everything in `src/docs/` and `build/` is regenerated on every build.
+
+### Prerequisites
+
+- Java 17+ (docToolchain bundles its own JDK — no manual install needed)
+- docToolchain 3.5.0 (installed via `./dtcw local install doctoolchain`)
+- `rsync` (usually pre-installed on Linux/macOS)
+
+### Build Steps
+
+Run the following from the repository root:
+
+```bash
+# 1. Sync source .md files into the working directory
+rsync -a docs/ src/docs/
+
+# 2. Convert .md → .adoc
+./dtcw exportMarkdown
+
+# 3. Copy generated .adoc files back to src/docs/
+find build -name '*.adoc' | while read f; do
+  rel="${f#build/}"
+  mkdir -p "src/docs/$(dirname "$rel")"
+  cp "$f" "src/docs/$rel"
+done
+
+# 4. Add jBake front-matter headers (type, status, menu category)
+find src/docs -name '*.adoc' | while read file; do
+  if ! grep -q 'jbake-type' "$file"; then
+    read -r first_line < "$file"
+    case "$(dirname "${file#src/docs/}")" in
+      concepts*)   menu="concepts" ;;
+      decisions*)  menu="decisions" ;;
+      *)           menu="arc42" ;;
+    esac
+    {
+      echo "$first_line"
+      echo ":jbake-type: page"
+      echo ":jbake-status: published"
+      echo ":jbake-menu: $menu"
+      echo ""
+      tail -n +2 "$file"
+    } > "${file}.tmp" && mv "${file}.tmp" "$file"
+  fi
+done
+
+# 5. Generate the HTML microsite
+./dtcw generateSite
+
+# 6. Open in browser
+firefox build/microsite/output/index.html
+```
+
+### What each step does
+
+| Step | Command | Purpose |
+|------|---------|---------|
+| 1 | `rsync` | Copies only the `.md` source files from `docs/` into the docToolchain working directory `src/docs/` |
+| 2 | `exportMarkdown` | docToolchain converts `.md` → `.adoc`, writes to `build/` |
+| 3 | Copy `.adoc` | Moves generated AsciiDoc back to `src/docs/` where `generateSite` expects them |
+| 4 | jBake headers | Adds `:jbake-type:`, `:jbake-status:`, `:jbake-menu:` to each `.adoc` — required for jBake site generation |
+| 5 | `generateSite` | docToolchain runs jBake to produce HTML in `build/microsite/output/` |
+| 6 | Open browser | View the result locally |
+
+### Why not just run `./dtcw generateSite`?
+
+`generateSite` reads `.adoc` files from `src/docs/`. If you skip steps 1-4, it will either:
+- **Fail** if `src/docs/` is empty (fresh clone, gitignored directory)
+- **Produce stale output** if `src/docs/` contains `.adoc` from a previous build that is out of sync with the current `.md` sources
+
+Always run the full pipeline.
+
+### GitHub Actions (CI)
+
+The same pipeline runs automatically in `.github/workflows/deploy-docs.yml` on every push to `main` that touches files under `docs/`. The CI workflow mirrors steps 1-5 exactly, then uploads `build/microsite/output/` as a Pages artifact and deploys to GitHub Pages.
+
+> **Source Anchor:** docToolchain exportMarkdown task: https://doctoolchain.org/tasks/exportMarkdown.html. docToolchain generateSite task: https://doctoolchain.org/tasks/generateSite.html. jBake: https://jbake.org. GitHub Pages: https://pages.github.com/.

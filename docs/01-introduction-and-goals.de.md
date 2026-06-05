@@ -56,20 +56,21 @@ Das Ergebnis ist deterministischeres Agentenverhalten, höhere Code-Qualität un
 | 4 | **Configuration Clarity** | Steering-Regeln werden in einfachem YAML definiert. Rollenbasierte Presets decken 90% der Anwendungsfälle ab. |
 | 5 | **Composability** | Koexistiert mit anderen opencode-Plugins und bestehenden Prompt-Instruktionen. Kein gemeinsamer veränderlicher Zustand. |
 | 6 | **Context Efficiency** | Steering-Regeln dürfen KEINE LLM-Context-Tokens verbrauchen. Die gesamte Durchsetzung muss über Plugin-Hooks erfolgen, nicht über System-Prompt-Instruktionen. Das Plugin darf nicht zu "Instruction Gluttony" beitragen oder mit dem Task-Context konkurrieren. |
+| 7 | **Reversibility** | Jeder Block muss rückgängig machbar sein – der Benutzer benötigt einen Escape-Hatch (z. B. `/anchor bypass` oder einen konfigurierbaren Override). Kein permanenter Lockout. |
 
 ## Stakeholder
 
-| Rolle | Anliegen |
-|-------|----------|
-| Softwareentwickler / Engineer | Profitiert direkt von der Durchsetzung der Intent-, Source-, Verification- und Step-Confirmation-Anchors während Coding-Sitzungen |
-| Consultant / Coach | Möchte das Plugin nutzen, um Teams die Anchor-Methodik ohne manuelle Überwachung zu vermitteln |
-| Softwarearchitekt | Benötigt architekturelle Anchors (Boundary, Emergence), die in Design-Sitzungen durchgesetzt werden |
-| Teamleiter / Engineering Manager | Möchte teamweite Konsistenz und messbare Anchor-Compliance |
-| **Compliance / Governance Officer** | Benötigt durchsetzbare Regeln (keine "weichen Vorschläge") und ein Audit-Log über Verstösse und Bypasses |
-| **Ethics Reviewer** | Benötigt Ethical-Anchor-Enforcement — das Plugin muss ethische Implikationen verifizierbar machen |
-| **Datenschutzbeauftragter** | Benötigt die Zusicherung, dass keine Geheimnisse oder personenbezogenen Daten durch Tool-Aufrufe oder Logs preisgegeben werden |
-| **C-Level / Entscheider** | Benötigt Metriken: "Wird die Methode befolgt?" — ohne das Tool selbst nutzen zu müssen |
-| **Betriebsrat** | Muss vor dem Deployment zustimmen. Das Plugin darf nicht zur Leistungsüberwachung oder Disziplinierung verwendet werden. Bypass-Logs müssen DSGVO-konform sein. |
+| Rolle | Anchor Role ID | Anliegen |
+|-------|----------------|----------|
+| Softwareentwickler / Engineer | `software-developer` | Profitiert direkt von der Durchsetzung der Intent-, Source-, Verification- und Step-Confirmation-Anchors während Coding-Sitzungen |
+| Consultant / Coach | `consultant` | Möchte das Plugin nutzen, um Teams die Anchor-Methodik ohne manuelle Überwachung zu vermitteln |
+| Softwarearchitekt | `software-architect` | Benötigt architekturelle Anchors (Boundary, Emergence), die in Design-Sitzungen durchgesetzt werden |
+| Teamleiter / Engineering Manager | `team-lead` | Möchte teamweite Konsistenz und messbare Anchor-Compliance |
+| **Compliance / Governance Officer** | — | Benötigt durchsetzbare Regeln (keine "weichen Vorschläge") und ein Audit-Log über Verstösse und Bypasses |
+| **Ethics Reviewer** | — | Benötigt Ethical-Anchor-Enforcement — das Plugin muss ethische Implikationen verifizierbar machen |
+| **Datenschutzbeauftragter** | — | Benötigt die Zusicherung, dass keine Geheimnisse oder personenbezogenen Daten durch Tool-Aufrufe oder Logs preisgegeben werden |
+| **C-Level / Entscheider** | — | Benötigt Metriken: "Wird die Methode befolgt?" — ohne das Tool selbst nutzen zu müssen |
+| **Betriebsrat** | — | Muss vor dem Deployment zustimmen. Das Plugin darf nicht zur Leistungsüberwachung oder Disziplinierung verwendet werden. Bypass-Logs müssen DSGVO-konform sein. |
 
 > **Hinweis:** Die Compliance-, Ethics-, Data-Privacy-, C-Level- und Betriebsrat-Stakeholder sitzen *ausserhalb der direkten Entwicklerkette*. Sie sind nicht in der Berichtslinie und konfigurieren das Plugin nicht selbst. Sie benötigen:
 > - **Audit-Logs**, die über Sitzungen hinweg aggregiert sind (nicht nur CLI-Output)

@@ -112,6 +112,10 @@ Conversion to `.adoc` occurs only at contribution time to the Semantic-Anchors r
 
 > **Source Anchor (source):** The Semantic-Anchors repository mandates: "AsciiDoc is mandatory — Do not convert to Markdown" (CLAUDE.md, LLM-Coding/Semantic-Anchors, https://github.com/LLM-Coding/Semantic-Anchors/blob/main/CLAUDE.md). This rule applies to content contributed to the repository. For local design documents, it does not apply.
 
+### Decision 7: Anchor Rules are bundled at design-time (not fetched at runtime)
+
+Anchor rules are **not fetched from GitHub at runtime**. They are derived from the Semantic-Anchors repository at design time and bundled as a default YAML preset within the plugin package. Full rationale, alternatives, and consequences in [ADR-013](../decisions/ADR-013-design-time-bundling.md).
+
 ## Quality Goal Realization
 
 | Goal | Realized by |

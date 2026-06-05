@@ -186,3 +186,93 @@ npm uninstall -g @semantic-anchors/opencode-plugin
 | `@opencode-ai/plugin` | ^0.59 | Plugin SDK | Mittel — folgt opencode-Releases |
 
 > **Source Anchor (Quelle):** Zod library: https://zod.dev/. js-yaml: https://github.com/nodeca/js-yaml. opencode Plugin SDK Typing: https://opencode.ai/docs/plugins/api.
+
+## 7. Lokaler Dokumentations-Build
+
+Die Projektdokumentation (arc42-Sektionen, ADRs, Concepts) wird in Markdown (`.md`) gepflegt und mittels **docToolchain + jBake** in eine Microsite gebaut.
+
+### Quell- vs. generierte Dateien
+
+| Verzeichnis | Rolle | Inhalt | In git? |
+|-------------|-------|--------|---------|
+| `docs/` | **Single source of truth** | `.md`-Dateien — hier editieren | ✅ committed |
+| `src/docs/` | **Generiertes Arbeitsverzeichnis** | `.md`-Kopien + `.adoc`-Dateien + jBake-Build | ❌ gitignored |
+| `build/` | **docToolchain-Ausgabe** | generierte `.adoc`, Microsite-HTML | ❌ gitignored |
+
+**Regel:** Nur `.md`-Dateien in `docs/` editieren. Alles in `src/docs/` und `build/` wird bei jedem Build neu generiert.
+
+### Voraussetzungen
+
+- Java 17+ (docToolchain bündelt eigene JDK — keine manuelle Installation nötig)
+- docToolchain 3.5.0 (installiert via `./dtcw local install doctoolchain`)
+- `rsync` (normalerweise auf Linux/macOS vorinstalliert)
+
+### Build-Schritte
+
+Ausgeführt vom Repository-Root:
+
+```bash
+# 1. .md-Quelldateien ins Arbeitsverzeichnis synchronisieren
+rsync -a docs/ src/docs/
+
+# 2. .md → .adoc konvertieren
+./dtcw exportMarkdown
+
+# 3. Generierte .adoc-Dateien zurück nach src/docs/ kopieren
+find build -name '*.adoc' | while read f; do
+  rel="${f#build/}"
+  mkdir -p "src/docs/$(dirname "$rel")"
+  cp "$f" "src/docs/$rel"
+done
+
+# 4. jBake-Frontmatter-Header hinzufügen (Typ, Status, Menü-Kategorie)
+find src/docs -name '*.adoc' | while read file; do
+  if ! grep -q 'jbake-type' "$file"; then
+    read -r first_line < "$file"
+    case "$(dirname "${file#src/docs/}")" in
+      concepts*)   menu="concepts" ;;
+      decisions*)  menu="decisions" ;;
+      *)           menu="arc42" ;;
+    esac
+    {
+      echo "$first_line"
+      echo ":jbake-type: page"
+      echo ":jbake-status: published"
+      echo ":jbake-menu: $menu"
+      echo ""
+      tail -n +2 "$file"
+    } > "${file}.tmp" && mv "${file}.tmp" "$file"
+  fi
+done
+
+# 5. HTML-Microsite generieren
+./dtcw generateSite
+
+# 6. Im Browser öffnen
+firefox build/microsite/output/index.html
+```
+
+### Was jeder Schritt bewirkt
+
+| Schritt | Befehl | Zweck |
+|---------|--------|-------|
+| 1 | `rsync` | Kopiert nur die `.md`-Quelldateien aus `docs/` in das docToolchain-Arbeitsverzeichnis `src/docs/` |
+| 2 | `exportMarkdown` | docToolchain konvertiert `.md` → `.adoc`, schreibt nach `build/` |
+| 3 | `.adoc` kopieren | Verschiebt generiertes AsciiDoc zurück nach `src/docs/`, wo `generateSite` sie erwartet |
+| 4 | jBake-Header | Fügt `:jbake-type:`, `:jbake-status:`, `:jbake-menu:` zu jeder `.adoc` hinzu — erforderlich für jBake-Seitengenerierung |
+| 5 | `generateSite` | docToolchain führt jBake aus, um HTML in `build/microsite/output/` zu erzeugen |
+| 6 | Browser öffnen | Ergebnis lokal ansehen |
+
+### Warum nicht einfach `./dtcw generateSite`?
+
+`generateSite` liest `.adoc`-Dateien aus `src/docs/`. Wenn die Schritte 1-4 übersprungen werden, passiert entweder:
+- **Fehler** wenn `src/docs/` leer ist (frischer Clone, gitignored)
+- **Veraltete Ausgabe** wenn `src/docs/` `.adoc`-Dateien eines früheren Builds enthält, die nicht mehr mit den aktuellen `.md`-Quellen synchron sind
+
+Immer die vollständige Pipeline ausführen.
+
+### GitHub Actions (CI)
+
+Dieselbe Pipeline läuft automatisch in `.github/workflows/deploy-docs.yml` bei jedem Push auf `main`, der Dateien unter `docs/` betrifft. Der CI-Workflow spiegelt die Schritte 1-5 exakt wider, lädt dann `build/microsite/output/` als Pages-Artefakt hoch und deployed auf GitHub Pages.
+
+> **Source Anchor:** docToolchain exportMarkdown task: https://doctoolchain.org/tasks/exportMarkdown.html. docToolchain generateSite task: https://doctoolchain.org/tasks/generateSite.html. jBake: https://jbake.org. GitHub Pages: https://pages.github.com/.

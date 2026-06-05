@@ -140,9 +140,11 @@ Das Zod-Schema validiert die Config beim Laden. Unbekannte Felder werden mit ein
 | Unit-Tests | `vitest` | PR + main-Branch |
 | Integrationstests | `vitest` mit opencode-Mock | PR (bei Änderungen) |
 | Build | `tsup` (oder `tsc`) | PR + main |
+| Docs-Build | docToolchain (`exportMarkdown` + `generateSite`) | Push auf main (Trigger: `docs/**`) |
+| Docs-Deploy | GitHub Pages | Push auf main (nach Docs-Build) |
 | Sicherheitsaudit | `npm audit` | Wöchentlich (Renovate) |
 
-> **Source Anchor (Quelle):** Vitest documentation: https://vitest.dev/. tsup: https://tsup.egoist.dev/.
+> **Source Anchor (Quelle):** Vitest documentation: https://vitest.dev/. tsup: https://tsup.egoist.dev/. docToolchain: https://doctoolchain.org.
 
 ### Branch-Strategie
 

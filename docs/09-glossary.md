@@ -16,6 +16,9 @@
 | **Steering Rule** | A configured behavioral directive that the plugin enforces at runtime (e.g. "step confirmation after 3 tool calls"). Synonymous with Structural Coupling Contract. | `docs/04-solution-strategy.md` |
 | **Trigger Pattern** | The condition that activates a steering rule (e.g. `tool.execute.before` with call counter > N). Part of a Structural Coupling Contract. | `docs/05-building-block-view.md` |
 | **Action** | What the plugin does when a trigger fires: `allow` (let pass), `block` (throw Error), `warn` (log warning). | `docs/05-building-block-view.md` |
+| **BLOCK** | Enforcement mode that prevents tool execution until the user addresses the contract violation. The user can override via `/anchor bypass`. | `docs/04-solution-strategy.md` |
+| **WARN** | Enforcement mode that allows tool execution but displays a reminder message in the log. Used for "soft" contracts that guide without forcing. | `docs/04-solution-strategy.md` |
+| **Hook** | An opencode plugin lifecycle callback that intercepts events (e.g. `tool.execute.before` intercepts tool calls, `chat.message` intercepts messages). Hooks are the plugin's runtime interface to opencode. | opencode Plugin SDK: https://opencode.ai/docs/plugins |
 | **Mode** | Operational mode of a contract: `enforce` (actively block/warn) or `log` (evaluate but never block — used for testing). | `docs/05-building-block-view.md` |
 
 ## Acronyms and Abbreviations

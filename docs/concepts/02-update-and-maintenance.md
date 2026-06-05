@@ -140,9 +140,11 @@ The Zod schema validates the config on load. Unknown fields are ignored with a w
 | Unit tests | `vitest` | PR + main branch |
 | Integration tests | `vitest` with opencode mock | PR (if changed) |
 | Build | `tsup` (or `tsc`) | PR + main |
+| Docs build | docToolchain (`exportMarkdown` + `generateSite`) | Push to main (`docs/**` trigger) |
+| Docs deploy | GitHub Pages | Push to main (after docs build) |
 | Security audit | `npm audit` | Weekly (Renovate) |
 
-> **Source Anchor (Quelle):** Vitest documentation: https://vitest.dev/. tsup: https://tsup.egoist.dev/.
+> **Source Anchor (Quelle):** Vitest documentation: https://vitest.dev/. tsup: https://tsup.egoist.dev/. docToolchain: https://doctoolchain.org.
 
 ### Branch Strategy
 

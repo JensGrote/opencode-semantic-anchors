@@ -12,7 +12,6 @@ inputFiles = [
         [file: '07-deployment-view.adoc', formats: ['html']],
         [file: '08-quality-requirements.adoc', formats: ['html']],
         [file: '09-glossary.adoc', formats: ['html']],
-        [file: 'opencode-semantic-anchors-design.adoc', formats: ['html']],
         /** inputFiles **/
 ]
 

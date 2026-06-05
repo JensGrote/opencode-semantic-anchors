@@ -179,3 +179,26 @@ Every new feature module follows Test-Driven Development:
 | Lint (future) | `biome check` |
 | Unit tests | `vitest run` |
 | Coverage | `vitest run --coverage` |
+
+## 8.6 Semantic Anchor Self-Verification
+
+The plugin itself must be verifiable through its own Semantic Anchors — the design satisfies each anchor as follows:
+
+| Anchor | How it's satisfied |
+|--------|-------------------|
+| Intent Anchor | Every rule has a `description` field explaining what it enforces |
+| Negative Anchor | Config explicitly lists `excludedTools` per task type |
+| Verification Anchor | Plugin self-test: `vitest run` verifies every rule triggers correctly |
+| Source Anchor | Code comments cite the relevant anchor definition from the Semantic-Anchors repo |
+| Step Confirmation Anchor | Plugin enforces step confirmation at the tool level — the design itself follows step confirmation (each section reviewed before proceeding) |
+| BLUF | Hook handler functions start with the verdict, then implement the logic |
+
+> **Source Anchor (source):** The six Semantic Anchors used here are defined in the LLM-Coding/Semantic-Anchors repository. See the anchor templates at `docs/anchors/_template.adoc` in that repo. The specific anchors are: Intent Anchor (formulate testably), Negative Anchor (explicit prohibitions), Verification Anchor (reverse reconstruction), Source Anchor (verbatim quoted source), Step Confirmation Anchor (one step at a time), and BLUF (bottom line up front).
+
+## 8.7 Performance Benchmarks
+
+| Metric | Target | Measured at |
+|--------|--------|-------------|
+| Hook execution | <50ms per call | `performance.now()` in hook handler |
+| Config load | <200ms (one-time at startup) | Plugin startup sequence |
+| Memory | <5MB for rule definitions + session state | Process heap measurement |

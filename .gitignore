@@ -7,6 +7,9 @@ dist/
 # Build output (docToolchain)
 build/
 
+# Generated docs working directory (adoc from md pipeline)
+src/docs/
+
 # OS files
 .DS_Store
 Thumbs.db
