@@ -66,7 +66,7 @@ microsite.with {
     /** start:microsite **/
 
     // is your microsite deployed with a context path?
-    contextPath = '/'
+    contextPath = '/opencode-semantic-anchors/'
     // the folder of a site definition (theme) relative to the docDir+inputPath
     //siteFolder = '../site'
 
