@@ -31,3 +31,7 @@ TRANSLATION-VERIFICATION-BATCH3.md
 # Logs
 *.log
 npm-debug.log*
+
+# Project management (not source)
+MASTER-TODO.md
+SESSIONS/
