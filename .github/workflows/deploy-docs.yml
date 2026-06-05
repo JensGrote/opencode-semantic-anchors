@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/docs/**'
+      - 'docs/**'
       - 'docToolchainConfig.groovy'
       - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
@@ -33,6 +33,8 @@ jobs:
           curl -Lo dtcw https://doctoolchain.org/dtcw
           chmod +x dtcw
           ./dtcw local install doctoolchain
+      - name: Sync Markdown sources from docs/
+        run: rsync -a docs/ src/docs/
       - name: Convert Markdown to AsciiDoc
         run: ./dtcw exportMarkdown
         continue-on-error: true
