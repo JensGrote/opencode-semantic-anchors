@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Secrets & environment
+.env
+.env.*
+*.age
+!*.age  # keep age files tracked if needed
+
+# Test coverage
+coverage/
+
+# Logs
+*.log
+npm-debug.log*

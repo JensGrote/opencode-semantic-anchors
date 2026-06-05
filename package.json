@@ -1,0 +1,58 @@
+{
+  "name": "opencode-semantic-anchors",
+  "version": "0.1.0",
+  "description": "Runtime steering plugin for opencode — enforces Semantic Anchors, contracts, and step confirmations via plugin hooks",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "sbom": "cyclonedx-npm --output-file sbom.json",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": [
+    "opencode",
+    "plugin",
+    "semantic-anchors",
+    "steering",
+    "ai",
+    "agent"
+  ],
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/JensGrote/opencode-semantic-anchors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JensGrote/opencode-semantic-anchors.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JensGrote/opencode-semantic-anchors/issues"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.16.0",
+    "js-yaml": "^4.2.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@cyclonedx/cyclonedx-npm": "^4.2.1",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.0.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}

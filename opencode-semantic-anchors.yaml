@@ -1,0 +1,57 @@
+# opencode-semantic-anchors — Konfiguration
+version: "1"
+
+# Aktivierte Anchor-Profile
+# socratic    → Intent, Negative, Verification, Source Anchors
+# architecture → Boundary, Emergence, Feedback, Resilience Anchors
+profiles:
+  - socratic
+
+# Individuelle Contracts (optional, überschreiben Profile-Contracts mit gleicher ID)
+contracts:
+  - id: block-dangerous-tools
+    mode: BLOCK
+    description: "Prevent dangerous file and deploy operations"
+    triggers:
+      - type: tool
+        pattern: file_write
+      - type: tool
+        pattern: deploy
+    maxOverrides: 3
+  - id: warn-git-operations
+    mode: WARN
+    description: "Git operations should be reviewed"
+    triggers:
+      - type: tool
+        pattern: git_*
+    maxOverrides: 3
+  - id: block-deploy-message
+    mode: BLOCK
+    description: "Deploy messages require approval"
+    triggers:
+      - type: message
+        pattern: deploy
+    maxOverrides: 3
+  - id: warn-restart-message
+    mode: WARN
+    description: "Restart may cause service downtime"
+    triggers:
+      - type: message
+        pattern: restart
+    maxOverrides: 3
+  # Überschreibt das source-anchor Preset aus dem socratic-Profil:
+  # - id: source-anchor
+  #   mode: BLOCK
+  #   description: "Claims must cite a verifiable source URL"
+  #   triggers:
+  #     - type: message
+  #       pattern: ""
+  #       requireSource: true
+
+presets:
+  developer:
+    - block-dangerous-tools
+    - warn-git-operations
+settings:
+  maxOverrides: 5
+  stepConfirmationInterval: 5

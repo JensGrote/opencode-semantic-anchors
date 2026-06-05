@@ -1,0 +1,42 @@
+# Testkonfiguration für Integrationstests
+version: "1"
+profiles:
+  - socratic
+contracts:
+  - id: block-dangerous-tools
+    mode: BLOCK
+    description: "Prevent dangerous file and deploy operations"
+    triggers:
+      - type: tool
+        pattern: file_write
+      - type: tool
+        pattern: deploy
+    maxOverrides: 2
+  - id: warn-git-operations
+    mode: WARN
+    description: "Git operations should be reviewed before execution"
+    triggers:
+      - type: tool
+        pattern: git_*
+    maxOverrides: 3
+  - id: block-message-deploy
+    mode: BLOCK
+    description: "Deploy messages require explicit approval"
+    triggers:
+      - type: message
+        pattern: deploy
+    maxOverrides: 3
+  - id: warn-message-restart
+    mode: WARN
+    description: "Restart may cause service downtime"
+    triggers:
+      - type: message
+        pattern: restart
+    maxOverrides: 3
+presets:
+  developer:
+    - block-dangerous-tools
+    - warn-git-operations
+settings:
+  maxOverrides: 5
+  stepConfirmationInterval: 4

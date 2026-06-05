@@ -1,0 +1,97 @@
+# ADR-006: Source Anchor als Architektur-Prinzip
+
+## Status
+Accepted
+
+## Context
+Das Plugin selbst folgt den Semantic Anchors, die es durchsetzt. Einer dieser Anchors ist der **Source Anchor**:
+
+> "Jede Behauptung muss durch eine wörtlich zitierte Quelle belegbar sein. Die Quelle (URL, Titel, Autor) muss angegeben werden."
+
+Die Frage: Soll der Source Anchor **nur** für das LLM gelten (als Regel, die das Plugin durchsetzt), oder auch **für die Architektur-Dokumentation des Plugins selbst**?
+
+Konkret: Jede Behauptung im Design-Dokument (arc42) über Technologien, Entscheidungen oder Sachverhalte muss mit einem wörtlichen Zitat aus einer verifizierbaren Quelle belegt sein.
+
+## Alternatives Considered
+
+### Option A: Source Anchor nur für LLM-Steering
+Das Plugin setzt den Source Anchor als Regel durch (WARN bei Behauptungen ohne Quelle), aber das Design-Dokument selbst muss keine Source Anchor-Regel befolgen.
+
+**Vorteile:**
+- Geringerer Schreibaufwand bei der Doku
+- Design-Dokument kann "frei" argumentieren
+- Weniger formale Hürden in der Design-Phase
+
+**Nachteile:**
+- **Widerspruch zur eigenen Methodik** — Plugin predigt Source Anchor, wendet ihn aber selbst nicht an
+- Risiko von Fehlentscheidungen durch unbelegte Annahmen
+- Bei Contribution ins Semantic-Anchors-Repo wird die fehlende Quellenangabe auffallen
+- Glaubwürdigkeitsverlust ("Do as I say, not as I do")
+
+### Option B: Source Anchor für Architektur-Dokumentation (gewählt)
+Jede Behauptung im arc42-Design-Dokument muss aus einer wörtlich zitierten Quelle belegbar sein.
+
+**Vorteile:**
+- **Konsistenz** — Plugin lebt selbst, was es fordert
+- Höhere Entscheidungsqualität durch belegte Fakten
+- Nachvollziehbarkeit für Reviewer und Contributor
+- Contribution-ready für Semantic-Anchors-Repo (dort ebenfalls Standard)
+- Vermeidet Spekulation ("könnte sein...", "vermutlich...")
+
+**Nachteile:**
+- Höherer Schreibaufwand (jede Behauptung muss belegt werden)
+- Nicht alle Behauptungen haben eine öffentliche Quelle (z.B. Issue #518 ist privat?)
+- Quellen können veralten (404-Links)
+- Verlangsamt die Design-Phase
+
+### Option C: Source Anchor mit abgestufter Verbindlichkeit
+Nur kritische Entscheidungen (Technologie-Wahl, Architektur) müssen belegt werden; beschreibender Text nicht.
+
+**Nachteile:**
+- **Abgrenzungsproblem** — was ist "kritisch", was nicht?
+- Subjektive Einschätzung führt zu inkonsistenter Anwendung
+- Bei Contribution müsste nachgebessert werden
+- Schwieriger zu prüfen als eine klare Regel
+
+## Evaluation Criteria
+| Kriterium | Gewicht | Beschreibung |
+|-----------|---------|--------------|
+| Methoden-Konsistenz | Hoch | Plugin muss selbst befolgen, was es fordert |
+| Entscheidungsqualität | Hoch | Belegte Fakten statt Spekulation |
+| Contribution-Readiness | Mittel | Semantic-Anchors-Repo erwartet Source Anchor |
+| Schreibaufwand | Niedrig | Soll die Dokumentation nicht übermässig belasten |
+| Nachvollziehbarkeit | Mittel | Reviewern muss klar sein, woher Informationen stammen |
+
+## Decision
+**Option B: Source Anchor für Architektur-Dokumentation** wurde gewählt.
+
+Begründung:
+- Ein Plugin, das den Source Anchor durchsetzt, muss ihn selbst leben (Glaubwürdigkeit)
+- Das Semantic-Anchors-Repository erwartet Source Anchor als Standard — Contribution erfordert es ohnehin
+- Die Qualität der Design-Entscheidungen wird durch belegte Fakten erhöht
+- "Do as I do" statt "Do as I say"
+- Der Aufwand ist in der Design-Phase gut investiert (verhindert spätere Korrekturschleifen)
+
+Im Design-Dokument wird jedes Source Anchor-Zitat mit folgendem Format dokumentiert:
+> **Source Anchor (Quelle):** <URL>. "<wörtliches Zitat>". Autor (falls bekannt).
+
+## Consequences
+- **Positiv:** Jede Behauptung im Design ist verifizierbar
+- **Positiv:** Das Plugin ist contribution-ready fürs Semantic-Anchors-Repo
+- **Positiv:** Reviewer können Entscheidungen anhand der Quellen nachvollziehen
+- **Positiv:** Keine Spekulation oder unbelegte Annahmen im Design
+- **Negativ:** Höherer Schreibaufwand (ca. +20% Doku-Zeit für Quellenrecherche)
+- **Negativ:** Quellen können veralten (URLs sterben) — erfordert gelegentliche Wartung
+- **Negativ:** Manche "offensichtliche" Fakten (z.B. "opencode läuft auf Node.js") müssen trotzdem belegt werden — fühlt sich manchmal pedantisch an
+- **Trade-off:** Pedanterie gegen Verlässlichkeit — wir akzeptieren die Pedanterie
+
+## Related
+- Entscheidung 5 in 04-solution-strategy.md
+- 02-architecture-constraints.md (Process Constraints — Source Anchor)
+- 01-introduction-and-goals.md (Design Principles — Source Anchor)
+- Template: https://github.com/LLM-Coding/Semantic-Anchors/blob/main/docs/anchors/_template.adoc
+
+## Sources
+- LLM-Coding/Semantic-Anchors — _template.adoc: https://github.com/LLM-Coding/Semantic-Anchors/blob/main/docs/anchors/_template.adoc
+- Source Anchor Definition (angenommener Pfad): https://github.com/LLM-Coding/Semantic-Anchors/docs/anchors/source-anchor.adoc
+- Semantic-Anchors CLAUDE.md (AsciiDoc-Verpflichtung): https://github.com/LLM-Coding/Semantic-Anchors/blob/main/CLAUDE.md

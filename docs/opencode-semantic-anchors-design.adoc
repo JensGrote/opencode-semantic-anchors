@@ -1,0 +1,616 @@
+= opencode-semantic-anchors – Design Document
+:author: derchiefhb
+:revdate: 2026-06-02
+:revnumber: 0.1.0
+:toc: left
+:toclevels: 4
+
+== Introduction and Goals
+
+=== Requirements Overview
+
+The `opencode-semantic-anchors` plugin enforces the LLM-Coding/Semantic-Anchors methodology at runtime within the opencode agent environment. It intercepts tool calls and chat messages, evaluates whether the agent's behavior conforms to configured anchor rules, and blocks or warns before violations occur – rather than relying on the agent's self-discipline via a prompt.
+
+=== Quality Goals
+
+[cols="1,2a"]
+|===
+| Goal | Description
+
+| Enforcement correctness
+| Every relevant anchor rule must be enforced when its trigger condition is met. No false negatives.
+
+| Minimal latency
+| Enforcement checks must complete within <100ms of the hook call. Plugin must not block the agent UX.
+
+| Configuration clarity
+| Anchor selection and rule definitions must be obvious to read and modify. Role/task-based picklists preferred over raw anchor IDs.
+
+| Reversibility
+| Every block must be recoverable – the user must have an escape hatch (e.g. `/anchor bypass` or a configurable override).
+
+| Composability
+| Must coexist with other opencode plugins. No global state corruption.
+|===
+
+=== Stakeholders
+
+[cols="2,1,2a"]
+|===
+| Role | Anchor Role ID | Concern
+
+| Software Developer / Engineer
+| software-developer
+| Directly benefits from anchor enforcement (Intent, Source, Verification, Step Confirmation)
+
+| Consultant / Coach
+| consultant
+| Wants to use the plugin to teach teams the anchor methodology
+
+| Software Architect
+| software-architect
+| Needs architecture-level anchors (Boundary, Emergence) enforced in design sessions
+
+| Team Lead / Eng Manager
+| team-lead
+| Wants team-wide consistency and measurable anchor compliance
+|===
+
+== Architecture Constraints
+
+=== Technical Constraints
+
+* **opencode plugin SDK** – Plugin must implement the `Plugin` type (function-based API) with `tool.execute.before` hook and `tool` definitions.
+* **TypeScript** – opencode plugins are TypeScript/JavaScript modules.
+* **File-based config** – Plugin loads anchor rules from a YAML file within the opencode config directory.
+* **No external services** – All enforcement logic runs locally. No HTTP calls, no database.
+
+=== Business Constraints
+
+* **Must be open-source** – Contribution path is LLM-Coding/Semantic-Anchors repo (MIT license).
+* **Must coexist with existing prompt-based anchor instructions** – Plugin amplifies, does not replace, prompt instructions.
+* **Must ship with role-based presets** – Out-of-the-box useful for the 12 Semantic-Anchors roles.
+
+=== Process Constraints
+
+* **Development must follow anchor methodology** – Design must include Intent, Negative, Verification, Source anchors for itself.
+* **First release must be local-only** (`.opencode/plugin/opencode-semantic-anchors/`) – npm publishing is a follow-up.
+
+== System Scope and Context
+
+=== System Boundary
+
+[plantuml,"context-diagram",png]
+....
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+Person(user, "User", "Human interacting with opencode agent")
+System(opencode, "opencode", "Agent runtime with plugin system")
+System_Ext(repo, "LLM-Coding/Semantic-Anchors", "Anchor definitions and documentation")
+System_Ext(sdk, "opencode Plugin SDK", "Hook interfaces and tool definitions")
+
+System_Boundary(plugin, "opencode-semantic-anchors") {
+  Container(hooks, "Hook Handlers", "TypeScript", "tool.execute.before + chat.message handlers")
+  Container(config, "Anchor Rule Engine", "YAML + TS", "Loads rules, evaluates triggers, returns allow/block/warn")
+  Container(permissions, "Override Mechanism", "Tool-level", "/anchor bypass, configurable overrides")
+}
+
+Rel(user, opencode, "Uses")
+Rel(opencode, plugin, "Loads as plugin", "plugin SDK")
+Rel(plugin, repo, "Summarizes rules from", "design-time, git subtree")
+Rel(plugin, sdk, "Uses types from", "npm @opencode-ai/plugin")
+Rel(plugin, config, "Reads", "opencode-semantic-anchors.yaml")
+@enduml
+....
+
+=== Business Context
+
+The plugin does *not* communicate with any external system at runtime. All anchor rules are bundled (design-time copy derived from the Semantic-Anchors repo). The user may customize rules locally. The plugin's purpose is to make anchor compliance *enforced* rather than *aspirational*.
+
+=== Technical Context
+
+[cols="2,2,2a"]
+|===
+| Interface | OpenCode Hook | Direction
+
+| Tool execution interception
+| `tool.execute.before`
+| opencode → plugin → allow/block/warn
+
+| Chat message observation
+| `chat.message`
+| opencode → plugin → suggest/remind
+
+| Agent activation / role change
+| `agent.activate`
+| opencode → plugin → load role-based presets
+
+| User escape / override
+| Custom tools (`/anchor`)
+| user → plugin → adjust state
+|===
+
+== Solution Strategy
+
+=== Architecture Overview
+
+The plugin follows a three-layer architecture:
+
+1. **Configuration Layer** (YAML) – Defines which anchors apply to which task types/roles, and the enforcement mode (block vs warn).
+2. **Rule Engine** (TypeScript) – Evaluates incoming tool calls and messages against active rules. Produces a verdict: `ALLOW`, `BLOCK`, `WARN`.
+3. **Hook Handlers** (TypeScript) – Thin adapters that call the Rule Engine and present results to opencode.
+
+=== Key Technical Decisions
+
+[cols="2,2,2a"]
+|===
+| Decision | Rationale
+
+| `tool.execute.before` as primary enforcement point
+| The `permission.ask` hook has known regressions in opencode (#7006/#28066). `tool.execute.before` is stable and can return `{ allow, message, overrideTool }`.
+
+| YAML config in `.opencode/opencode-semantic-anchors.yaml`
+| YAML is more readable than JSON for rule definitions. Follows opencode conventions.
+
+| Role-based preset selection
+| The Semantic-Anchors repo already defines 12 roles. Matching these directly avoids creating a parallel taxonomy.
+
+| Intent detection via tool name pattern + message keywords
+| Too complex for v1 to parse every message semantically. A simple classifier based on tool name (e.g. `edit` → implementation task) and message keywords suffices for v1.
+
+| Override via `/anchor bypass` custom tool
+| User must have an escape hatch. The bypass logs the override and self-destructs after N bypasses (configurable).
+|===
+
+== Building Block View
+
+=== Plugin Entry Point
+
+[source,typescript]
+----
+// index.ts – plugin entry point
+import type { Plugin, tool } from '@opencode-ai/plugin'
+
+export const opencodeSemanticAnchors: Plugin = async ({ client, $, directory, worktree }) => {
+  const config = await loadConfig()
+  const engine = new RuleEngine(config)
+
+  return {
+    'tool.execute.before': async (input, output) => {
+      const verdict = engine.evaluate({
+        type: 'tool',
+        toolName: input.tool,
+        args: output.args,
+      })
+
+      if (!verdict.allow) {
+        throw new Error(`🚫 ${verdict.message}`)       // BLOCK
+      }
+
+      if (verdict.message) {
+        await client.app.log({                          // WARN
+          body: { service: 'opencode-semantic-anchors', level: 'warn', message: verdict.message }
+        })
+      }
+    },
+
+    tool: {
+      'anchor-bypass': anchorBypassTool(engine),
+      'anchor-status': anchorStatusTool(engine),
+      'anchor-config-reload': anchorConfigReloadTool(config),
+    },
+  }
+}
+----
+
+=== Hook: tool.execute.before
+
+[plantuml,"before-hook-flow",png]
+....
+@startuml
+start
+
+:receive ToolExecuteContext;
+:extract toolName, args, caller;
+:get active rules for tool + role;
+
+if (rule matches?) then (yes)
+  if (rule.mode == BLOCK) then
+    if (bypass active? && overrideCount < max) then
+      :increment overrideCount;
+      :return { allow: true, message: "⚠️ Anchor override used (N/M)" };
+    else
+      :return { allow: false, message: "🚫 Anchor violation: <rule description>", overrideTool: "anchor-bypass" };
+    endif
+  else (WARN mode)
+    :return { allow: true, message: "⚠️ Anchor reminder: <rule description>" };
+  endif
+else (no match)
+  :return { allow: true };
+endif
+
+stop
+@enduml
+....
+
+Key rules enforced here:
+
+* **Step Confirmation Anchor** – After every N tool calls (configurable, default 3), block and ask "Weiter?" if user hasn't explicitly confirmed.
+* **Source Anchor** – When tool is `edit` or `write` and preceding messages lack a cited source, block with a reminder.
+* **Verification Anchor** – When task is marked "complete" but no verification step was executed, warn.
+
+=== Hook: chat.message
+
+[source,typescript]
+----
+async function chatMessageHook(ctx: ChatMessageContext): Promise<ChatMessageResult> {
+  const message = ctx.message.content
+
+  // Check for intent anchor violations
+  if (missingIntent(ctx.conversationContext)) {
+    return { suggestions: ['Tip: Frame your request using an Intent Anchor: what, why, how to verify.'] }
+  }
+
+  // Check for BLUF violations (verbose narrative before conclusion)
+  if (isVerboseNarrative(message)) {
+    return { suggestions: ['Reminder: Start with BLUF (conclusion first, then details).'] }
+  }
+
+  // Check for source anchor on factual claims
+  if (containsFactualClaim(message) && !containsSourceCitation(message)) {
+    return { suggestions: ['Source Anchor reminder: Claims need a cited source.'] }
+  }
+
+  return { suggestions: [] }
+}
+----
+
+=== Hook: agent.activate
+
+Fires when the agent loads or switches roles. Loads the role-based preset from config:
+
+[source,typescript]
+----
+async function agentActivateHook(ctx: AgentActivateContext): Promise<AgentActivateResult> {
+  const role = ctx.agentConfig.role || 'default'
+  const preset = loadPreset(role)
+  setActiveRules(preset.rules)
+  return { state: { activeRules: preset.rules, role } }
+}
+----
+
+=== Custom Tools
+
+[cols="2,2,2a"]
+|===
+| Tool | Description | Permissions
+
+| `/anchor bypass [reason]`
+| Temporarily (or once) bypass active anchor rule. Logged.
+| Everyone (with configurable max uses)
+
+| `/anchor status`
+| Show currently active anchor rules and counts.
+| Everyone
+
+| `/anchor config-reload`
+| Reload YAML config without restart.
+| Requires `edit` permission scope
+|===
+
+== Runtime View
+
+=== Tool Execution Flow (Blocking Scenario)
+
+[plantuml,"runtime-sequence",png]
+....
+@uml
+User -> opencode: Type message
+opencode -> plugin: tool.execute.before(edit, {oldString, newString})
+plugin -> RuleEngine: evaluate(edit, activeRules)
+RuleEngine -> AnchorMatcher: match("edit", "100-intent")
+AnchorMatcher --> RuleEngine: { match: true, mode: BLOCK }
+RuleEngine --> plugin: { verdict: BLOCK, rule: "100-intent" }
+plugin --> opencode: { allow: false, message: "Intent Anchor: Missing 'why' in previous message", overrideTool: "anchor-bypass" }
+opencode -> User: Show block message + bypass option
+User -> opencode: Use /anchor bypass "adding test per verification anchor"
+opencode -> plugin: tool.execute.before(anchor-bypass, {reason})
+plugin -> plugin: increment overrideCount
+plugin --> opencode: { allow: true }
+opencode -> plugin: tool.execute.before(edit, ...) [retry]
+plugin --> opencode: { allow: true }
+opencode -> Agent: Execute edit
+opencode -> User: Show result
+@enduml
+....
+
+=== Startup Sequence
+
+[source,typescript]
+----
+1. opencode starts
+2. opencode reads opencode.jsonc → plugins array
+3. opencode loads ./opencode/plugin/opencode-semantic-anchors/index.js
+4. Plugin constructor:
+   a. Reads ~/.config/opencode/opencode-semantic-anchors.yaml
+   b. Validates YAML schema (anchor IDs exist, modes are valid)
+   c. If validation fails: log warning and fall back to defaults
+   d. Registers hooks and custom tools
+5. Hook agent.activate fires (if agent set with role)
+6. Plugin loads role-based preset → active rules initialized
+7. ready
+----
+
+== Deployment View
+
+=== Local Development Structure
+
+[source,text]
+----
+.opencode/
+├── opencode.jsonc
+├── plugin/
+│   └── opencode-semantic-anchors/
+│       ├── package.json
+│       ├── tsconfig.json
+│       ├── src/
+│       │   ├── index.ts              # Plugin entry point
+│       │   ├── rules/
+│       │   │   ├── engine.ts         # RuleEngine class
+│       │   │   ├── matcher.ts        # AnchorMatcher
+│       │   │   └── presets.ts        # Role-based presets
+│       │   ├── hooks/
+│       │   │   ├── toolExecute.ts    # tool.execute.before handler
+│       │   │   ├── chatMessage.ts    # chat.message handler
+│       │   │   └── agentActivate.ts  # agent.activate handler
+│       │   ├── tools/
+│       │   │   ├── bypass.ts         # /anchor bypass
+│       │   │   ├── status.ts        # /anchor status
+│       │   │   └── configReload.ts   # /anchor config-reload
+│       │   ├── config/
+│       │   │   ├── loader.ts         # YAML loader + validator
+│       │   │   └── schema.ts         # Zod schema for config
+│       │   └── types/
+│       │       └── index.ts          # Shared types
+│       ├── test/
+│       │   ├── rules.test.ts
+│       │   ├── hooks.test.ts
+│       │   └── integration.test.ts
+│       ├── dist/                     # Build output
+│       └── README.md
+│
+└── opencode-semantic-anchors.yaml    # User-facing config (or default bundled)
+----
+
+=== Distribution Artifact
+
+[cols="2,2,2a"]
+|===
+| Artifact | Path | Notes
+
+| npm package
+| `opencode-semantic-anchors`
+| Published to npm; installable via `npx opencode plugins add opencode-semantic-anchors`
+
+| Local install
+| `.opencode/plugin/opencode-semantic-anchors/`
+| Git clone or manual copy; `package.json` points `"main": "dist/index.js"`
+
+| Config file (user)
+| `~/.config/opencode/opencode-semantic-anchors.yaml`
+| User overrides; plugin falls back to bundled defaults if missing
+
+| Config file (bundled default)
+| `src/config/defaults.yaml`
+| Shipped with plugin; provides role-based presets for all 12 roles
+|===
+
+== Crosscutting Concepts
+
+=== Domain Model
+
+[plantuml,"domain-model",png]
+....
+@startuml
+class AnchorRule {
+  + id: string
+  + title: string
+  + description: string
+  + mode: 'BLOCK' | 'WARN'
+  + triggers: TriggerSpec[]
+  + roles: string[]
+  + maxOverrides: number
+}
+
+class TriggerSpec {
+  + type: 'tool' | 'message' | 'state'
+  + pattern: string | RegExp
+  + count?: number  // for step confirmation
+  + context?: string[]
+}
+
+class ActiveSession {
+  + role: string
+  + rules: AnchorRule[]
+  + overrideCount: number
+  + maxOverrides: number
+  + toolCallCount: number
+  + lastConfirmation: Date | null
+}
+
+class Verdict {
+  + allow: boolean
+  + rule: AnchorRule | null
+  + message: string
+  + overrideTool?: string
+}
+
+AnchorRule "1" -- "*" TriggerSpec
+ActiveSession "*" -- "*" AnchorRule : active
+RuleEngine --> Verdict : evaluate()
+@enduml
+....
+
+=== Security Model
+
+* **Plugin runs within opencode's sandbox** – No file access beyond plugin directory and config.
+* **Config file** – Loaded from `~/.config/opencode/` (opencode's config scope). No secrets in config.
+* **Bypass mechanism** – Logged to memory only; reset on restart. Configurable `maxOverrides` prevents permanent bypass.
+
+=== Error Handling
+
+[cols="2,2a"]
+|===
+| Failure Mode | Behavior
+
+| Config YAML parse error
+| Log warning, use bundled defaults, continue
+
+| Unknown anchor ID in config
+| Skip rule, log warning, continue
+
+| Hook throws exception
+| Log error, return `{ allow: true }` (fail-open) to prevent agent lockout
+
+| Plugin load failure
+| opencode continues without plugin (graceful degradation)
+|===
+
+=== Test Strategy
+
+[cols="2,2,2a"]
+|===
+| Test Layer | Scope | Tooling
+
+| Unit tests
+| RuleEngine, AnchorMatcher, config loader
+| vitest
+
+| Hook tests
+| toolExecute, chatMessage with mock contexts
+| vitest + @opencode-ai/test-utils
+
+| Integration tests
+| Plugin loads into opencode, hooks fire correctly
+| opencode test harness (manual, then CI)
+
+| End-to-end
+| Real agent session with controlled prompts
+| Manual (prerelease)
+|===
+
+== Design Decisions
+
+=== Decision 1: BLOCK vs WARN mode
+
+* **BLOCK** (default for Step Confirmation, Source Anchor) – Prevents tool execution. User must override or adjust.
+* **WARN** (default for BLUF, Feynman, Cynefin) – Allows execution but displays a reminder. Useful for "soft" anchors that guide without forcing.
+
+Configurable per rule:
+
+[source,yaml]
+----
+rules:
+  - id: step-confirmation
+    mode: BLOCK
+    maxOverrides: 5
+  - id: source-anchor
+    mode: BLOCK
+  - id: bluf
+    mode: WARN
+----
+
+=== Decision 2: Task-type detection
+
+V1 uses a **simple keyword + tool-name classifier**:
+
+[source,yaml]
+----
+taskTypes:
+  plan:
+    keywords: [plan, design, architecture, how-to]
+    excludedTools: [write, edit]  # planning is conversation
+  implement:
+    keywords: [implement, code, build, add]
+    includedTools: [write, edit]
+  review:
+    keywords: [review, audit, check, verify]
+    includedTools: [read, glob, grep]
+  research:
+    keywords: [search, research, investigate, explore]
+    includedTools: [webfetch, websearch]
+----
+
+V2 (future) could use a lightweight NLP classifier or explicit `/role` commands.
+
+=== Decision 3: Anchor rule bundling
+
+Anchor rules are **not fetched from GitHub at runtime**. They are derived from the Semantic-Anchors repo at design time and bundled as a default YAML preset. Rationale:
+
+* Zero external dependencies at runtime
+* Version-pinned behavior (plugin version X ships with anchor set Y)
+* User may customize without affecting upstream
+
+== Quality Requirements
+
+=== Verifiability
+
+The plugin itself must be verifiable via its own Semantic Anchors:
+
+[cols="2,2,2a"]
+|===
+| Anchor | How it's satisfied
+
+| Intent Anchor
+| Every rule has a `description` field explaining what it enforces
+
+| Negative Anchor
+| Config explicitly lists `excludedTools` per task type
+
+| Verification Anchor
+| Plugin self-test: `vitest run` verifies every rule triggers correctly
+
+| Source Anchor
+| Code comments cite the relevant anchor `.adoc` file from the repo
+
+| Step Confirmation Anchor
+| Plugin enforces step confirmation at the tool level
+
+| BLUF
+| Hook handler functions start with the verdict, then implement the logic
+|===
+
+=== Performance
+
+* Hook execution: <50ms per call (measured with `performance.now()`)
+* Config load: <200ms (one-time at startup)
+* Memory: <5MB for rule definitions and session state
+
+== Glossary
+
+[cols="2,2a"]
+|===
+| Term | Definition
+
+| anchor
+| A structured communication or thinking pattern defined in the LLM-Coding/Semantic-Anchors repo
+
+| BLOCK
+| Enforcement mode that prevents tool execution until the user addresses the anchor violation
+
+| WARN
+| Enforcement mode that allows execution but displays a reminder
+
+| override (bypass)
+| User action `/anchor bypass` that temporarily overrides an active BLOCK
+
+| role-based preset
+| A pre-defined set of anchor rules tailored to one of the 12 Semantic-Anchors roles
+
+| hook
+| An opencode plugin lifecycle callback (e.g. `tool.execute.before`)
+
+| rule engine
+| The core component that matches incoming events against active rules and produces a verdict
+|===
