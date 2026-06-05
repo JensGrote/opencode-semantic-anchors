@@ -1,0 +1,127 @@
+= ADR-008: Fail-Open Principle on Hook Errors
+:jbake-type: page
+:jbake-status: published
+:jbake-menu: decisions
+
+
+== Status
+
+Accepted
+
+== Context
+
+The plugin operates within the opencode process. When a plugin hook fails (crash, unexpected error, config bug), there are two fundamental strategies:
+
+. *Fail-Open* — On error, tool execution is allowed (the agent continues)
+. *Fail-Closed* — On error, tool execution is blocked (the agent stops)
+
+The problem:
+- The plugin is a *steering tool*, not a security layer
+- A blocking error would bring the entire opencode session to a halt
+- The user cannot "turn off" the plugin when it crashes (except by restart)
+- At the same time: If the plugin does not block because of an error when it should, a "silent ignore" problem arises
+
+The question: Do we respond to errors permissively (allow) or restrictively (block)?
+
+== Alternatives Considered
+
+=== Option A: Fail-Open (chosen)
+
+On every error in a hook, the plugin returns `{ allow: true }` (in the new API: no throw, tool proceeds). The error is logged.
+
+----
+Error in Config Layer     → DefaultConfig + Warning Log
+Error in RuleEngine       → allow: true + Error Log
+Error in Hook Handler     → allow: true + Error Log
+Error in Custom Tool      → Error Response to User
+----
+
+*Advantages:*
+- *Workflow Continuity* — The agent always continues, even with plugin errors
+- *Graceful Degradation* — On partial failures, other contracts continue
+- *Debuggability* — Errors are logged, can be analysed
+- *User-friendly* — No "plugin crashed, session dead" scenario
+
+*Disadvantages:*
+- *Silent Failure Risk* — A bug in the plugin causes rules not to be enforced without the user noticing
+- Security Theatre — User trusts enforcement, but on errors everything goes through
+
+=== Option B: Fail-Closed
+
+On every error, the plugin blocks tool execution.
+
+*Advantages:*
+- *Security-First* — When in doubt, block; no silent failures
+- *Noticeable* — User immediately notices the plugin has a problem
+
+*Disadvantages:*
+- *Workflow Kill* — A plugin error blocks the entire opencode session
+- *No Graceful Degradation* — Even a single broken contract brings everything to a halt
+- *Frustrating* — User cannot work until the plugin is fixed
+- Plugin is not designed as a security layer — Fail-Closed suggests a security guarantee the plugin cannot uphold
+
+=== Option C: Hybrid — Fail-Open with User Notification
+
+Fail-Open, but the user is informed about every Fail-Open via a UI message.
+
+*Disadvantages:*
+- opencode Plugin SDK does not provide a way to send UI messages
+- `client.app.log()` only writes to the log — user does not see it directly
+- Would need to be implemented via TUI notification (`client.tui.showToast()` — API unclear)
+- User notification is nice-to-have, but not reliable enough for Fail-Closed
+
+== Evaluation Criteria
+
+|===
+|Criterion |Weight |Description 
+
+|Workflow Continuity |High |The agent must be able to continue running 
+|Security |Medium |No false security guarantee 
+|Error detectability |Medium |User must be able to notice errors (via log) 
+|Graceful Degradation |High |Partial failure = partial function, not total failure 
+|Implementation effort |Low |Simple to implement (catch + log) 
+|===
+
+== Decision
+
+*Option A: Fail-Open* was chosen.
+
+Rationale:
+- The plugin is a *runtime steering tool*, not a security layer. Fail-Open is the more honest strategy.
+- Workflow Continuity is Quality Goal #3 — a plugin crash must not kill the session
+- Silent failures are addressed through logging (`client.app.log({ level: "error" })`)
+- Fail-Open is opencode's own approach (on throw in hook `tool.execute.before`, opencode catches the error and lets execution continue)
+- Fail-Closed would suggest a security guarantee the plugin cannot deliver
+
+=== Protection Layers
+
+Fail-Open is implemented on two levels:
+
+----
+Layer 1: Hook Handler catches RuleEngine errors  → catch + log + no throw
+Layer 2: opencode itself catches Hook errors      → tool.execute continues
+----
+
+== Consequences
+
+* *Positive:* The agent always continues (Quality Goal #3)
+* *Positive:* Graceful Degradation — on config error, other contracts continue
+* *Positive:* Simple to implement (every hook is in try/catch)
+* *Positive:* opencode natively supports this pattern (catches throw in hook)
+* *Negative:* With a plugin bug, rules are silently not enforced
+* *Negative:* User must actively check the log to notice errors
+* *Negative:* Faulty config is not immediately apparent (DefaultConfig is loaded)
+* *Trade-off:* Workflow Continuity against Enforcement Reliability — Continuity wins, because the plugin is not a security layer
+
+== Related
+
+* Error Handling in 05-building-block-view.md (Section "Error Handling")
+* 06-runtime-view.md (Error Scenarios — Hook Throw Error)
+* Quality Goal #3: Workflow Continuity in 01-introduction-and-goals.md
+* ADR-001: Enforcement via `tool.execute.before`
+
+== Sources
+
+* opencode Plugin SDK — .env protection example: https://opencode.ai/docs/plugins#env-protection
+* Fail-Open Architectural Pattern: https://martinfowler.com/ieeeSoftware/failSafe.pdf (Ian Sommerville, "Design for Resilience")
+* Safety vs Security in Software Architecture (distinguish: Fail-Open for safety, Fail-Closed for security)

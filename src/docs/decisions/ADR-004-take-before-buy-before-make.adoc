@@ -1,0 +1,183 @@
+= ADR-004: Take before Buy before Make as Development Paradigm
+:jbake-type: page
+:jbake-status: published
+:jbake-menu: decisions
+
+
+== Status
+
+Accepted
+
+== Context
+
+When developing the plugin, there are two possible approaches:
+
+. *Build from scratch* — Write everything ourselves, maximum control
+. *Take before Buy before Make* — Check existing solutions, adopt (Take), integrate (Buy), or only then develop custom (Make)
+
+The LLM-Coding/Semantic-Anchors Repository itself defines this principle as a methodological requirement. But it is not an "empty" rule — it must be applied concretely.
+
+The question: Should the plugin development team (we) adopt this principle as a binding development paradigm? And if so, with what level of commitment?
+
+== Alternatives Considered
+
+=== Option A: Build from Scratch
+
+Write everything ourselves, no external dependencies besides the opencode Plugin SDK.
+
+*Advantages:*
+- Full control over codebase
+- No external dependencies (beyond SDK)
+- Maximum flexibility in design decisions
+- No licence conflicts
+
+*Disadvantages:*
+- *Duplicates existing work* — other projects have solved similar problems
+- *Increased risk* — known pitfalls are overlooked
+- No alignment with the ecosystem
+- Higher development effort
+
+=== Option B: Take before Buy before Make (chosen)
+
+Before writing code, systematically check:
+
+. *Take* — Does something exist we can use directly?
+* opencode Plugin SDK (take: we use it directly)
+* Semantic-Anchors terminology (take: we adopt it)
+. *Buy* — Can we integrate an open-source component?
+* `agentcontract/spec` terminology &amp; YAML format (buy: we adopt the format)
+* `js-yaml` for YAML parsing (buy: we use it directly)
+* `zod` for schema validation (buy: we use it directly)
+. *Make* — Custom development only for the opencode-specific part:
+* Plugin hooks (opencode-specific — no existing plugin)
+* RuleEngine with contract evaluation
+* Bypass mechanism
+* Config loader with role presets
+
+*Advantages:*
+- *Avoids "Not invented here" syndrome*
+- Reduces development time (take/buy &gt; make)
+- Uses proven components (zod, js-yaml are mature)
+- Alignment with ecosystem (agentcontract/spec, Semantic-Anchors)
+- Open-source licences are compatible (MIT)
+
+*Disadvantages:*
+- Dependency on third parties (updates, security, breaking changes)
+- Must perform the Take-Buy-Make check for every feature development (process cost)
+- Less control over third-party components
+
+=== Option C: Hybrid — Take/Buy without Formal Process
+
+Use existing solutions in principle, but without a formal check before each decision.
+
+*Disadvantages:*
+- Informal process is often skipped in practice
+- Decisions are made inconsistently
+- Under time pressure, "Make" is more likely chosen
+- Without documentation of Take/Buy checks, it is not traceable why something was built from scratch
+
+== Evaluation Criteria
+
+|===
+|Criterion |Weight |Description 
+
+|Development speed |High |Faster to adopt existing code 
+|Maintainability |High |Less own code = less maintenance 
+|Ecosystem alignment |Medium |Compatibility with agent standards 
+|Dependency risk |Medium |External dependencies = update obligation 
+|Process cost |Low |Formal check before each decision 
+|===
+
+== Decision
+
+*Option B: Take before Buy before Make* was chosen as a binding development paradigm.
+
+Rationale:
+- The Semantic-Anchors repository itself defines it as a methodological requirement
+- Significantly reduces development time (zod, js-yaml, agentcontract/spec are ready)
+- "Buy" components are MIT-licensed (compatible with contribution path)
+- The formal check is documented at every relevant place in the design document (Source Anchor)
+- For the plugin specifically: Take (opencode SDK) → Buy (zod, js-yaml, agentcontract/spec format) → Make (RuleEngine, Hooks, Config Loader)
+
+== Applied Take-Buy-Make Analysis
+
+Before starting our own development, the following existing projects were systematically checked. For each project, it was documented why it is Take, Buy, or Make:
+
+=== 1. `agentcontract/spec`
+
+* *Type:* Specification for Agent Contracts (YAML, Pre/Postconditions, CI Gating)
+* *Assessment:* Buy (terminology + format)
+* *Why not adapted/forked:* It is a specification, not an implementation. There is no executable plugin we could have adopted for opencode. We adopt the YAML format and contract terminology, but build the opencode-specific hook integration ourselves (Make).
+* *Contribution:* Our YAML schema is compatible enough to be contributed later as an opencode profile to agentcontract/spec.
+
+=== 2. Kiros `/steering`
+
+* *Type:* Runtime Steering Files (proprietary)
+* *Assessment:* Take (inspiration)
+* *Why not adapted/forked:* Kiros is a proprietary, different agent tool. The `/steering` concept is tightly woven into Kiros' architecture. Extracting it for opencode would be a redesign — no less effort than a Make. We take the idea (runtime steering = YAML file influences agent behaviour) as inspiration.
+* *Contribution:* Not possible (proprietary).
+
+=== 3. Semantic-Anchors Onboarding Skill
+
+* *Type:* Claude Code Plugin (installs anchor blocks into AGENTS.md)
+* *Assessment:* Take (concept)
+* *Why not adapted/forked:* This plugin is for Claude Code (different platform) and prompt-based (not hook-enforced). A rewrite for opencode would be a Make, not an Adapt. We take the idea of role-based presets as inspiration.
+* *Contribution:* Our plugin will be contributed as `plugins/opencode-semantic-anchors/` into the same Semantic-Anchors repository — as the opencode counterpart to the Claude Code plugin under `plugins/semantic-anchors/`.
+
+=== 4. `gl0bal01/contract-agents`
+
+* *Type:* AGENTS_CONTRACT.md with agent roles (prompt-based)
+* *Assessment:* Take (reference)
+* *Why not adapted/forked:* Purely prompt-based — no runtime enforcement. The mechanism (Markdown file with role definitions) is not transferable to opencode hooks. We take the idea of role-based configuration as a reference.
+* *Contribution:* No direct contribution possible.
+
+=== 5. SpecAnchor
+
+* *Type:* Three-Tier Spec System with Drift Detection
+* *Assessment:* Take (reference)
+* *Why not adapted/forked:* No opencode integration. SpecAnchor focuses on specification drift over time, not on runtime steering. The objective is different.
+* *Contribution:* No direct contribution possible.
+
+=== 6. opencode Plugin SDK (Take)
+
+* Used directly. No Make needed.
+
+=== 7. Zod + js-yaml (Buy)
+
+* Integrated as runtime dependencies. No Make needed.
+
+=== 8. RuleEngine, Hooks, Config Loader (Make)
+
+* *Custom development*, because:
+* No existing project offers runtime enforcement inside opencode's plugin system
+* All existing solutions are prompt-based, platform-specific, or specifications without implementation
+* The combination of hook enforcement + Structural Coupling Contract + opencode-specific config format does not exist anywhere
+
+=== Summary of the Analysis
+
+The plugin fills a *genuine gap* — none of the existing solutions cover runtime enforcement via opencode plugin hooks. The Make portion is limited to the opencode-specific core; Take and Buy cover the rest.
+
+== Consequences
+
+* *Positive:* Avoids duplication of existing solutions
+* *Positive:* Uses mature, tested libraries (zod, js-yaml)
+* *Positive:* Alignment with the agent contract ecosystem
+* *Negative:* External dependencies require update management (Renovate, npm audit)
+* *Negative:* Each new dependency must be checked for licence compatibility
+* *Negative:* Process costs for each feature development (short check, but formal)
+* *Trade-off:* Less custom-build control against faster, safer development
+
+== Related
+
+* Decision 4 in 04-solution-strategy.md
+* 02-architecture-constraints.md (Process Constraints)
+* 03-system-scope-and-context.md (Take before Buy before Make Check)
+* docs/concepts/02-update-and-maintenance.md (Dependency Management, Renovate)
+
+== Sources
+
+* LLM-Coding/Semantic-Anchors — Repo: https://github.com/LLM-Coding/Semantic-Anchors
+* AgentContract Specification: https://github.com/agentcontract/spec/blob/main/SPEC.md
+* Zod: https://zod.dev/
+* js-yaml: https://github.com/nodeca/js-yaml
+* opencode Plugin SDK: https://opencode.ai/docs/plugins

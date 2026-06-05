@@ -1,0 +1,308 @@
+= Querschnittskonzept: Update &amp; Wartung
+:jbake-type: page
+:jbake-status: published
+:jbake-menu: concepts
+
+
+== 1. Versionierungsstrategie
+
+Das Plugin folgt *Semantic Versioning* (SemVer 2.0.0):
+
+|===
+|Komponente |Beispiel |Bedeutung 
+
+|*MAJOR* |`2.0.0` |Breaking Changes (Hook-API, Config-Schema, entfernte Features) 
+|*MINOR* |`1.3.0` |Neue Features (neue Hooks, neue Rollen, neue Tools) 
+|*PATCH* |`1.2.5` |Fehlerbehebungen, Sicherheitspatches, Dependency-Updates 
+|===
+
+____
+
+*Source Anchor (Quelle):* Semantic Versioning 2.0.0. https://semver.org/. "MAJOR version when you make incompatible API changes, MINOR version when you add functionality in a backward-compatible manner, PATCH version when you make backward-compatible bug fixes."
+
+____
+
+=== Pre-Release-Tags
+
+* `1.0.0-alpha.1` — interne Tests
+* `1.0.0-beta.1` — Community-Tests
+* `1.0.0-rc.1` — Release Candidate
+
+== 2. Release-Prozess
+
+----
+1. Release-Branch erstellen: release/vX.Y.Z
+2. CHANGELOG.md aktualisieren
+3. Version in package.json erhöhen
+4. Vollständige Testsuite ausführen (vitest)
+5. GitHub Release mit Tag vX.Y.Z erstellen
+6. Release-Branch in main mergen
+7. Auf npm veröffentlichen (v2-Feature)
+8. Dokumentation aktualisieren
+----
+
+*Changelog-Format:* Keep a Changelog (https://keepachangelog.com/en/1.1.0/)
+
+[source,markdown]
+----
+# Changelog
+
+## [1.1.0] - 2026-07-15
+
+### Added
+- New hook: `agent.activate` for role-based preset loading
+- `/anchor config-reload` tool (requires `edit` permission)
+
+### Fixed
+- RuleEngine `evaluate()` now correctly resets toolCallCount on role change
+
+### Security
+- Updated zod to 3.23.8 (fixes CVE-2026-1234)
+----
+
+== 3. Bibliotheks-Update-Strategie
+
+=== Dependency Management
+
+Das Plugin hat minimale Laufzeitabhängigkeiten (siehe `01-installation.md`). Updates werden verwaltet durch:
+
+|===
+|Tool |Zweck |Status 
+
+|`npm audit` |Manueller Sicherheitsscan |Vor jedem Commit 
+|`npm outdated` |Prüfung auf verfügbare Updates |Wöchentlich 
+|*Renovate* |Automatisierte Dependency-PRs |*Empfohlen* 
+|===
+
+____
+
+*Source Anchor (Quelle):* npm audit documentation: https://docs.npmjs.com/cli/v10/commands/npm-audit. "Scans your project's dependencies for security vulnerabilities and suggests fixes."
+
+____
+
+=== Renovate-Konfiguration
+
+Das Plugin sollte Renovate (nicht Dependabot) für automatisierte Dependency-Updates verwenden:
+
+*Warum Renovate statt Dependabot:*
+
+|===
+|Feature |Renovate |Dependabot 
+
+|Config-as-Code |`renovate.json` |`dependabot.yml` 
+|Gruppierung |Flexibel (nach Scope, nach Häufigkeit) |Eingeschränkt 
+|Zeitplanung |Cron, benutzerdefinierte Zeitpläne |Ungefähr täglich 
+|Auto-Merge |Ja (mit Branch-Schutz) |Ja 
+|Presets |Umfangreiche gemeinsame Presets |Keine 
+|===
+
+____
+
+*Source Anchor (Quelle):* Renovate Documentation — Why Renovate: https://docs.renovatebot.com/why-renovate/. "Renovate is a Mend product, supporting over 300 automated dependency update platforms and languages."
+
+____
+
+*Vorgeschlagenes `renovate.json`:*
+
+[source,json]
+----
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "group:allNonMajor",
+    ":separateMajorMinor",
+    ":automergeDigest",
+    ":automergePatch"
+  ],
+  "schedule": ["before 8am on monday"],
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "matchDepTypes": ["devDependencies"],
+      "automerge": true
+    },
+    {
+      "matchPackageNames": ["@opencode-ai/plugin"],
+      "labels": ["opencode-sdk"],
+      "automerge": false
+    }
+  ]
+}
+----
+
+*Update-Häufigkeit:*
+
+|===
+|Abhängigkeitstyp |Prüfung |Aktion 
+
+|Runtime (zod, js-yaml) |Wöchentlich (Montag) |Manuelle Prüfung bei Minors, Automerge bei Patches 
+|Dev (vitest, typescript, eslint) |Wöchentlich |Automerge Minor/Patch 
+|opencode SDK |Bei Release |Manuelle Prüfung — Hook-API-Änderungen sind Breaking 
+|===
+
+=== Config-Migration zwischen Versionen
+
+|===
+|Versionswechsel |Migration nötig |Mechanismus 
+
+|PATCH |Nein |Rückwärtskompatibel 
+|MINOR |Nein (nur hinzufügend) |Neue Felder sind optional mit Defaultwerten 
+|MAJOR |Ja |Migrationsskript + CHANGELOG mit dokumentierten Schritten 
+|===
+
+Das Zod-Schema validiert die Config beim Laden. Unbekannte Felder werden mit einer Warnung ignoriert, nicht abgelehnt — das ermöglicht Vorwärtskompatibilität.
+
+== 4. Repository-Wartung
+
+=== CI/CD-Pipeline
+
+|===
+|Stufe |Tool |Zeitpunkt 
+
+|Lint |`eslint` |Pre-Commit + PR 
+|Typprüfung |`tsc --noEmit` |Pre-Commit + PR 
+|Unit-Tests |`vitest` |PR + main-Branch 
+|Integrationstests |`vitest` mit opencode-Mock |PR (bei Änderungen) 
+|Build |`tsup` (oder `tsc`) |PR + main 
+|Sicherheitsaudit |`npm audit` |Wöchentlich (Renovate) 
+|===
+
+____
+
+*Source Anchor (Quelle):* Vitest documentation: https://vitest.dev/. tsup: https://tsup.egoist.dev/.
+
+____
+
+=== Branch-Strategie
+
+----
+main ← Produktionsbereit, geschützt
+  ├── develop ← Integrationsbranch
+  │    ├── feature/xxx ← Feature-Branches
+  │    └── fix/xxx ← Bugfix-Branches
+  └── release/vX.Y.Z ← Release Candidates
+----
+
+*Branch-Schutzregeln (main):*
+- Pull-Request vor Merge erforderlich
+- Status-Checks erforderlich (CI bestanden)
+- Lineare Historie erforderlich (keine Merge-Commits)
+- Keine direkten Pushes
+
+=== Issue- und PR-Vorlagen
+
+Das Repository sollte enthalten:
+
+|===
+|Vorlage |Datei |Zweck 
+
+|Bug Report |`.github/ISSUE_TEMPLATE/bug.yml` |Strukturierte Fehlermeldungen 
+|Feature Request |`.github/ISSUE_TEMPLATE/feature.yml` |Anwendungsfall + Anchor-Ausrichtung 
+|Pull Request |`.github/PULL_REQUEST_TEMPLATE.md` |Beschreibung, Tests, Changelog-Eintrag 
+|===
+
+=== Community-Richtlinien
+
+* `CONTRIBUTING.md` — Einrichtung der Entwicklungsumgebung, Codestandards, PR-Workflow
+* `CODE_OF_CONDUCT.md` — angepasst vom Contributor Covenant
+* `SECURITY.md` — Richtlinie zur Offenlegung von Sicherheitslücken (siehe Abschnitt 5 unten)
+
+== 5. Sicherheitslücken-Management
+
+=== Offenlegungsrichtlinie
+
+Das Plugin folgt *koordinierter Offenlegung* (90-Tage-Richtlinie):
+
+----
+1. Melder sendet Details an security@semantic-anchors.dev (oder GH Security Advisory)
+2. Maintainer bestätigt Eingang innerhalb von 48 Stunden
+3. Fehlerbehebung wird entwickelt (Ziel: 30 Tage bei kritisch, 90 Tage bei moderat)
+4. Patch wird veröffentlicht (PATCH-Version erhöht)
+5. CVE wird nach Verfügbarkeit des Patches veröffentlicht
+6. Melder wird gewürdigt (falls gewünscht)
+----
+
+____
+
+*Source Anchor (Quelle):* GitHub Security Advisories: https://docs.github.com/en/code-security/security-advisories. "Privately report security vulnerabilities, collaborate on a fix, and publish a security advisory." Siehe auch: ISO 29147 (Vulnerability Disclosure).
+
+____
+
+=== Reaktion auf Sicherheitslücken
+
+|===
+|Schweregrad |Reaktionszeit |Versionserhöhung |Kommunikation 
+
+|Kritisch (CVSS 9.0+) |7 Tage |PATCH |GH Advisory + E-Mail 
+|Hoch (CVSS 7.0–8.9) |14 Tage |PATCH |GH Advisory 
+|Mittel (CVSS 4.0–6.9) |30 Tage |PATCH |GH Advisory 
+|Niedrig (CVSS &lt;4.0) |90 Tage |PATCH (gebündelt) |Nächstes Release 
+|===
+
+____
+
+*Source Anchor (Quelle):* CVSS v3.1 Specification: https://www.first.org/cvss/v3-1/. "Common Vulnerability Scoring System provides a way to capture the principal characteristics of a vulnerability."
+
+____
+
+=== Supply-Chain-Sicherheit
+
+|===
+|Massnahme |Implementierung 
+
+|Lock-Datei |`package-lock.json` eingecheckt 
+|Dependency-Scanning |`npm audit` + Renovate 
+|SBOM-Generierung |`cyclonedx-bom` oder `npm sbom` (npm v10+) 
+|Signatur-Verifikation |npm-Paketsignierung (v2) 
+|===
+
+== 6. ISO-27001-Relevanz
+
+____
+
+*Hinweis:* ISO 27001 ist eine Organisationszertifizierung, keine Produktzertifizierung. Im Folgenden werden relevante *Controls* für die Entwicklung und den Betrieb des Plugins abgebildet, kein Anspruch auf ISO-27001-Konformität.
+
+____
+
+=== Anwendbare Controls (ISO 27001:2022 Annex A)
+
+|===
+|Control |Relevanz für das Plugin |Implementierung 
+
+|*A.5.1* Policies for information security |Plugin arbeitet innerhalb der Sicherheitsrichtlinien des Benutzers (BYOP — Bring Your Own Policy) |Config-basierte Regeln sind überprüfbar 
+|*A.5.2* Information security roles and responsibilities |Plugin verwaltet keine Benutzerkonten oder Rollen |Rollenbasierte Presets sind nur lokal 
+|*A.8.10* Information deletion |Plugin-Session-State ist flüchtig (In-Memory, nach Neustart verloren) |Keine persistenten Logs mit PII 
+|*A.8.11* Information masking |Plugin darf keine Secrets oder Zugangsdaten loggen |Config schließt Secrets explizit aus; logged Tool-Namen, nicht Argumente 
+|*A.8.12* Data leakage prevention |Plugin darf keine Daten über externe Aufrufe abfließen lassen |Keine externen HTTP-Aufrufe (Architekturvorgabe) 
+|*A.8.24* Use of cryptography |Plugin handhabt keine Verschlüsselung |Nicht anwendbar — keine Secrets gespeichert 
+|*A.8.25* Secure development lifecycle |Plugin folgt der Semantic-Anchors-Methodik + verbindliche Tests |Abgedeckt durch Prozessvorgaben 
+|*A.8.28* Secure coding |Verpflichtendes Code-Review, Linting, Typprüfung |CI-Pipeline stellt dies sicher 
+|*A.8.29* Security testing in development |Unit- + Integrationstests für die gesamte Enforcement-Logik |Vitest-Testsuite 
+|*A.8.31* Separation of development, test and production environments |CI/CD-Pipeline trennt die Stufen |GitHub Actions pro Umgebung 
+|*A.8.32* Change management |Release-Prozess mit CHANGELOG + Versionserhöhungen |Dokumentierter Release-Workflow 
+|*A.8.34* Protection of information systems during audit testing |Plugin ist kein Ziel von Audittests |N/V — kein Produktionsserver 
+|*A.12.6* Technical vulnerability management |Dependency-Scanning + koordinierte Offenlegung |Renovate + SECURITY.md 
+|*A.14.2* Security in development and support processes |Plugin-Entwicklung selbst folgt der Anchors-Methodik |Intent/Negative/Verification-Anchors für jedes Feature 
+|===
+
+____
+
+*Source Anchor (Quelle):* ISO 27001:2022 Annex A Control List. https://www.iso.org/standard/27001. Die Controls entstammen dem offiziellen ISO 27001:2022 Standard, Annex A (Reference control objectives and controls).
+
+____
+
+=== Was ISO 27001 NICHT von diesem Plugin verlangt
+
+* *Keine Zertifizierung:* Das Plugin ist kein Produkt, das ISO 27001-zertifiziert wird (das ist die Organisation)
+* *Keine Audit-Logs für Compliance-Berichte:* Das Plugin bietet Laufzeit-Durchsetzung, keine Audit-Trail
+* *Kein Zugriffskontrollsystem:* Das Plugin authentifiziert keine Benutzer
+* *Keine Verschlüsselungsebene:* Das Plugin speichert keine Secrets
+
+=== Was Entwickler wissen sollten
+
+Wenn Ihre Organisation ISO 27001 verwendet, ist das Plugin relevant unter *A.8.25 (Secure Development)* und *A.12.6 (Vulnerability Management)* — d. h. denselben Controls, die für jede von Ihnen integrierte npm-Abhängigkeit gelten.

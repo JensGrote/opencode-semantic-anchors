@@ -1,0 +1,127 @@
+# ADR-012: Bilingual Documentation (English + German) with Literal Translation
+
+## Status
+Accepted
+
+## Context
+The LLM-Coding/Semantic-Anchors Repository documents its anchors and concepts consistently bilingually (English + German), recognisable through the `.de.adoc` suffix convention:
+
+```
+docs/
+  about.adoc              ← English
+  about.de.adoc           ← German
+  CONTRIBUTING.adoc       ← English
+  CONTRIBUTING.de.adoc    ← German
+  agentskill.adoc         ← English
+  agentskill.de.adoc      ← German
+  brownfield-workflow.adoc
+  brownfield-workflow.de.adoc
+  rejected-proposals.adoc
+  rejected-proposals.de.adoc
+  socratic-recovery-skill.adoc
+  socratic-recovery-skill.de.adoc
+  spec-driven-workflow.adoc
+  spec-driven-workflow.de.adoc
+```
+
+> **Source Anchor:** https://github.com/LLM-Coding/Semantic-Anchors/tree/main/docs — 7 of 14 doc files have a `.de.adoc` parallel.
+
+Our plugin will be contributed to this repository (Phase 5). The design documentation must therefore also be maintained bilingually to:
+1. **Maintain compatibility** with the language convention of the upstream repo
+2. **Ensure accessibility** for German-speaking and English-speaking readers
+3. **Achieve technical precision** — architecture concepts are often easier to grasp in one's native language
+
+### The Problem of Translation
+Technical translations have a fundamental difficulty: Many technical terms have no 1:1 equivalent (e.g., "Steering Correctness" → "Lenkungsrichtigkeit" vs. "Steuerungskorrektheit"). In cases of ambiguity, the translation must be chosen that best represents the **Intent** and **Domain Correctness** — not the most literal one.
+
+## Alternatives Considered
+
+### Option A: English Only (Monolingual)
+Documentation is maintained exclusively in English.
+
+**Advantages:**
+- Single source of truth — no synchronisation needed
+- Less maintenance effort (50% fewer files)
+- English is the de facto standard for technical documentation
+- No translation errors possible
+
+**Disadvantages:**
+- **Incompatible** with the language strategy of the Semantic-Anchors repo (.de.adoc files)
+- German-speaking stakeholders are excluded
+- arc42 is a German-language template — core concepts are often only precise in German
+- Contradicts the target contribution (the repo expects bilingualism)
+
+### Option B: Bilingual with Parallel Files (chosen)
+Each documentation file exists in two language versions: `*.md` (English) and `*.de.md` (German). Translation principle: literal; in case of ambiguity, intent and domain correctness decide.
+
+**Advantages:**
+- 1:1 compatible with the upstream repo (.de suffix)
+- Clear separation: readers choose their language
+- arc42 German/English natively supported
+- Translation quality is traceable (Git diff over the parallel file)
+
+**Disadvantages:**
+- Double maintenance effort (changes must go into both versions)
+- Synchronisation risk: One version can become outdated
+- Higher file count (+100% documentation files)
+
+### Option C: German Only (Monolingual)
+Documentation is maintained exclusively in German.
+
+**Advantages:**
+- Single source of truth
+- arc42 is of German origin
+
+**Disadvantages:**
+- **International readers excluded** — opencode plugin targets an international community
+- Incompatible with contribution strategy (the repo expects both languages)
+- English is the standard for opencode plugins
+
+## Evaluation Criteria
+| Criterion | Weight | Description |
+|-----------|--------|-------------|
+| Contribution compatibility | High | The Semantic-Anchors repo expects `.de` documents |
+| Technical precision | High | Translation must correctly represent intent and domain |
+| Maintenance effort | Medium | Synchronisation of language versions |
+| Readability | Medium | Both language groups must be served |
+| Synchronisation risk | Low | Deviations between EN and DE must be recognisable |
+
+## Decision
+**Option B: Bilingual with Parallel Files** was chosen.
+
+Rationale:
+- Contribution compatibility mandates `.de` files — no way around it
+- The upstream repo (Semantic-Anchors) practices bilingualism — we follow this convention
+- arc42 is inherently designed bilingually (German inventors, English standard template)
+- The additional effort is offset by contribution readiness and accessibility
+
+### Translation Principle (Literal Translation with Intent-Resolve)
+A **hierarchical decision rule** applies for translation:
+
+1. **Literal — precise, no free paraphrasing.** Each sentence is translated as close to the original as possible. No interpretive "embellishment."
+2. **If a term is ambiguous** (e.g., "steering" → "Lenkung"/"Steuerung"/"Führung"), the translation is chosen that best represents the **Intent Anchor** (what should happen?) and **domain correctness**.
+3. **Technical terms and proper names remain untranslated.** `RuleEngine`, `tool.execute.before`, `Hook`, `Steering Contract` are not Germanised.
+4. **Every translation must be traceable in the Git diff.** No silent changes of content during translation.
+
+**Convention:**
+- Primary documentation: `docs/<section>-<title>.md` (English)
+- German version: `docs/<section>-<title>.de.md` (parallel)
+- At contribution: `.md` → `.adoc`, `.de.md` → `.de.adoc`
+
+## Consequences
+- **Positive:** Contribution-ready — the plugin design fulfills the language convention of the upstream repo
+- **Positive:** German-speaking stakeholders can read the documentation in their native language
+- **Positive:** arc42 core concepts are more precise in German (e.g., "Building Block View" → "Bausteinsicht")
+- **Negative:** Double maintenance effort on changes (both language versions must be updated)
+- **Negative:** Higher file count — 12 arc42 sections × 2 languages = 24 files + Concepts + Decisions
+- **Trade-off:** Higher long-term maintenance costs, but contribution-once conversion remains possible
+
+## Related
+- ADR-007: Markdown for Design Docs (Format choice; language is a separate concern)
+- `docs/02-architecture-constraints.md` (Language Constraint)
+- `docs/concepts/04-language-and-translation.md` (detailed translation conventions)
+
+## Sources
+- LLM-Coding/Semantic-Anchors — docs directory: https://github.com/LLM-Coding/Semantic-Anchors/tree/main/docs — 7 of 14 files have `.de.adoc` parallel version
+- arc42 Template (DE): https://www.arc42.de — arc42 is a German template
+- arc42 Template (EN): https://arc42.org — English version

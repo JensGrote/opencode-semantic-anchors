@@ -1,0 +1,185 @@
+= ADR-010: Funktionsbasierte Plugin-API (statt `AgentPlugin`-Interface)
+:jbake-type: page
+:jbake-status: published
+:jbake-menu: decisions
+
+
+== Status
+
+Accepted
+
+== Context
+
+Das opencode Plugin SDK hat sich zwischen den Versionen 0.58 und 0.59 von einer objekt-basierten zu einer funktionsbasierten API gewandelt:
+
+=== Alte API (AgentPlugin)
+
+[source,typescript]
+----
+import { AgentPlugin } from '@opencode-ai/plugin'
+
+export default function createPlugin(): AgentPlugin {
+  return {
+    name: 'opencode-semantic-anchors',
+    hooks: { ... },
+    tools: [ ... ],
+  }
+}
+----
+
+=== Neue API (Plugin)
+
+[source,typescript]
+----
+import type { Plugin, tool } from '@opencode-ai/plugin'
+
+export const opencodeSemanticAnchors: Plugin = async ({ client, $, directory, worktree }) => {
+  const config = await loadConfig()
+  const engine = new RuleEngine(config)
+
+  return {
+    'tool.execute.before': async (input, output) => {
+      // throw new Error() to block
+    },
+    tool: {
+      'anchor-bypass': tool({ ... }),
+    },
+  }
+}
+----
+
+Unser ursprüngliches Design (05-building-block-view.md) verwendete die alte API. Im Juni 2026 haben wir festgestellt, dass die opencode-Doku nur noch die funktionsbasierte API zeigt.
+
+Die Frage: Sollen wir auf die neue API migrieren (erfordert Anpassung aller Code-Beispiele und Interfaces) oder bei der alten API bleiben (kompatibel, aber veraltet)?
+
+== Alternatives Considered
+
+=== Option A: Neue funktionsbasierte API (gewählt)
+
+Alle Code-Beispiele im Design-Dokument und die zukünftige Implementierung verwenden die neue API.
+
+*Vorteile:*
+- *Zukunftssicher* — opencode entwickelt die neue API weiter, die alte wird irgendwann deprecated
+- *Factory-Funktion* erlaubt Initialisierungslogik (Config laden, Engine bauen) direkt im Plugin
+- `tool()`-Helper ist typsicherer als das alte `Tool`-Interface
+- *Zugriff auf `client`* für Logging (`client.app.log()`)
+- Bessere Dependency-Injection (engine, config werden im Factory-Scope gehalten)
+- opencode Dokumentation zeigt nur noch diese API
+
+*Nachteile:*
+- *Kein dedizierter `chat.message` Hook* mehr (muss über Event-System)
+- *Kein `agent.activate` Hook* mehr (muss über session-Events)
+- Hook-Signatur hat sich geändert (`(input, output)` statt `(ctx)`)
+- Tools werden als Objekt-Property `tool: { name: tool({...}) }` registriert, nicht als Array
+- Umstellung aller Code-Beispiele im Design-Dokument
+
+=== Option B: Alte AgentPlugin-API
+
+An der alten API festhalten, da sie zum Zeitpunkt des Designs (Mai/Juni 2026) noch dokumentiert war.
+
+*Vorteile:*
+- Keine Änderung an bestehenden Code-Beispielen
+- Vertraute API (objekt-basiert)
+- Dedizierte Hooks für `chat.message` und `agent.activate`
+
+*Nachteile:*
+- *Veraltet* — opencode Doku zeigt nur noch die neue API
+- *Risiko* — alte API könnte in opencode 1.0 entfernt werden
+- Kein Zugriff auf `client` für Logging
+- Keine Factory-Funktion (Initialisierung muss anderswo passieren)
+- Kein typsicherer `tool()`-Helper
+
+=== Option C: Beide APIs unterstützen
+
+Das Plugin erkennt zur Laufzeit, welche API opencode unterstützt, und verwendet entsprechend die alte oder neue API.
+
+*Nachteile:*
+- *Doppelte Code-Pfade* — jede Hook- und Tool-Definition müsste in zwei Varianten existieren
+- *Hohe Test-Komplexität* — beide APIs müssen getestet werden
+- *Nicht dokumentiert* — opencode unterstützt offiziell nur die neue API
+- Abwärtskompatibilität ist opencode's Problem, nicht unseres
+
+== Evaluation Criteria
+
+|===
+|Kriterium |Gewicht |Beschreibung 
+
+|Zukunftssicherheit |Hoch |API muss in opencode 1.0 funktionieren 
+|Typsicherheit |Hoch |Tool-Definitionen sollen typgeprüft sein 
+|Logging-Fähigkeit |Hoch |Plugin muss Warnungen ausgeben können 
+|Initialisierung |Mittel |Config/Engine müssen beim Laden initialisiert werden 
+|Implementierungsaufwand |Niedrig |Code-Beispiele müssen umgestellt werden 
+|===
+
+== Decision
+
+*Option A: Neue funktionsbasierte API* wurde gewählt.
+
+Begründung:
+- opencode Doku (https://opencode.ai/docs/plugins) zeigt nur noch die neue API — die alte ist effektiv deprecated
+- Die Factory-Funktion erlaubt elegante Initialisierung (Config laden, Engine bauen) im Plugin-Scope
+- `client.app.log()` ist der einzige Weg, Warnungen auszugeben (existiert nur in der neuen API)
+- `tool()`-Helper ist typsicherer als das alte `Tool`-Interface
+- Umstellung der Code-Beispiele ist einmaliger Aufwand, der sich langfristig auszahlt
+
+=== API Mapping
+
+|===
+|Alt |Neu 
+
+|`createPlugin(): AgentPlugin` |`export const MyPlugin: Plugin = async (ctx) => {}` 
+|`return { allow: false }` block |`throw new Error()` block 
+|`return { allow: true, message }` warn |`client.app.log({ level: "warn", ... })` warn 
+|`Tool` Interface |`tool({ description, args, execute })` 
+|`hooks: { 'chat.message': fn }` |`event({ type: 'message.updated' })` 
+|`hooks: { 'agent.activate': fn }` |`event({ type: 'session.created' })` 
+|`tools: [tool1, tool2]` (Array) |`tool: { name1: tool1(), name2: tool2() }` (Object) 
+|===
+
+== Consequences
+
+* *Positiv:* Zukunftssicher — API wird von opencode weiterentwickelt
+* *Positiv:* Typsicherheit durch `tool()`-Helper
+* *Positiv:* Logging via `client.app.log()` für Warnungen und Fehler
+* *Positiv:* Saubere Dependency-Injection durch Factory-Scope
+* *Positiv:* *Context-Effizienz* (siehe ADR-002) — die funktionsbasierte API mit `tool.execute.before` Hooks stellt sicher, dass Steering-Regeln ausserhalb des LLM-Context-Windows ausgewertet werden. Kein Token-Verbrauch, kein Prompt-Rauschen, kein Instruction Gluttony.
+* *Negativ:* Chat-Message-Beobachtung nur noch via generischem Event-System (kein dedizierter Hook)
+* *Negativ:* Role-Change-Detektion nur noch via Session-Events
+* *Negativ:* Alle Code-Beispiele im Design-Dokument mussten umgestellt werden (einmaliger Aufwand, erledigt)
+* *Trade-off:* Verlust dedizierter Hooks gegen zukunftssichere API und Context-Effizienz — akzeptabel, da Event-System gleichwertige Funktion bietet
+
+=== Abhängigkeit zu ADR-001 (Future Migration Path)
+
+ADR-001 (`tool.execute.before` statt `permission.ask`) basiert auf der Annahme, dass `permission.ask` instabil ist (Regression Issues #7006, #28066). *Sollte `permission.ask` in einer zukünftigen opencode-Version stabilisiert werden*, ändern sich die negativen Aspekte dieser Entscheidung:
+
+|===
+|Heute (ADR-001 + ADR-010) |Mit stabilem `permission.ask` 
+
+|`throw new Error()` = harter Block |Könnte Permission-Dialog mit "Allow/Deny" zeigen 
+|Warnungen nur im Log (`client.app.log`) |Könnte UI-Message + "Weiter trotzdem?" anzeigen 
+|Bypass via Custom Tool (`anchor-bypass`) |Könnte natives "Override" im Permission-Dialog haben 
+|Kein Unterschied zwischen "block + bypass" und "block + no bypass" |Permission-Scope könnte feingranularer sein 
+|===
+
+*Migration Strategy:* Sollte `permission.ask` stabil werden, kann ADR-001 revisitiert werden. Die Migration wäre:
+1. `throw new Error()` → `return { allow: false, reason, overrideTool }` (Permission-Dialog)
+2. `client.app.log({ level: "warn" })` → `return { allow: true, message }` (UI-Warning)
+3. `anchor-bypass` Custom Tool → integrierter Override-Mechanismus
+
+*Aufwand bei Migration:* Mittel. Die Hook-Logik (evaluate → verdict) bleibt gleich, nur das Interface ändert sich. Der Rest von ADR-010 (Factory-Funktion, `tool()`-Helper, `client`-Zugriff) bleibt unabhängig davon gültig.
+
+== Related
+
+* ADR-001: Enforcement via `tool.execute.before` (Mapping: throw statt return)
+* ADR-001 erwähnt: "Bei einer zukünftigen Stabilisierung von `permission.ask` könnte eine Migration auf das native System attraktiv werden"
+* 05-building-block-view.md (alle Code-Beispiele umgestellt)
+* 06-runtime-view.md (4 Sequence-Diagramme umgestellt)
+* 02-architecture-constraints.md (Constraint aktualisiert)
+* opencode Plugin SDK: https://opencode.ai/docs/plugins
+
+== Sources
+
+* opencode Plugin SDK — Basic Structure: https://opencode.ai/docs/plugins#basic-structure
+* opencode Plugin SDK — Custom Tools: https://opencode.ai/docs/plugins#custom-tools
+* opencode Plugin SDK — Logging: https://opencode.ai/docs/plugins#logging
+* opencode Plugin SDK — Events: https://opencode.ai/docs/plugins#events

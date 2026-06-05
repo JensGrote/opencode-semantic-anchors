@@ -1,0 +1,126 @@
+= Language and Translation Conventions
+:jbake-type: page
+:jbake-status: published
+:jbake-menu: concepts
+
+
+== Status: Topic Note (not fully elaborated)
+
+== 1. Scope
+
+Dieses Dokument definiert die Sprach- und Übersetzungskonventionen für die gesamte Design-Dokumentation des opencode-semantic-anchors Plugins. Es gilt für alle arc42-Sektionen, Crosscutting Concepts und Architecture Decision Records.
+
+== 2. Sprachstrategie
+
+Das Projekt wird *zweisprachig (Englisch + Deutsch)* geführt, in Übereinstimmung mit der Konvention des LLM-Coding/Semantic-Anchors Upstream-Repos.
+
+____
+
+*Source Anchor:* https://github.com/LLM-Coding/Semantic-Anchors/tree/main/docs — 7 von 14 Doku-Dateien haben eine `.de.adoc`-Parallelversion.
+
+____
+
+=== Datei-Konvention
+
+|===
+|Sprache |Suffix |Beispiel 
+
+|Englisch (Primär) |`.md` |`01-introduction-and-goals.md` 
+|Deutsch (parallel) |`.de.md` |`01-introduction-and-goals.de.md` 
+|Englisch (nach Contribution) |`.adoc` |`01-introduction-and-goals.adoc` 
+|Deutsch (nach Contribution) |`.de.adoc` |`01-introduction-and-goals.de.adoc` 
+|===
+
+=== Übersetzungsprinzip: Literal Translation mit Intent-Resolve
+
+*Übersetzungs-Hierarchie (absteigend verbindlich):*
+
+==== Stufe 1: Wörtlich (Literal)
+
+Jeder Satz wird so nah wie möglich am Original übersetzt. Keine sinngemässe Paraphrase, keine "Verschönerung", keine Auslassungen.
+
+*Richtig:* "The plugin intercepts the tool.execute.before hook."
+→ "Das Plugin interceptet den tool.execute.before Hook."
+
+*Falsch:* "The plugin intercepts the tool.execute.before hook."
+→ "Das Plugin greift in den Ausführungsprozess ein." (sinngemässe Paraphrase)
+
+==== Stufe 2: Intent-Resolve bei Mehrdeutigkeit
+
+Wenn ein Begriff oder Satz nicht eindeutig übersetzbar ist (z.B. "steering" → "Lenkung" vs. "Steuerung" vs. "Führung"), wird nach folgender Priorität entschieden:
+
+. *Fachliche Korrektheit (Domain Correctness)* — Welche Übersetzung bildet den Fachbegriff im Kontext der Systemarchitektur am präzisesten ab?
+. *Intent Anchor* — Was soll laut Definition passieren? Die Übersetzung muss den Zweck des Konzepts transportieren.
+. *Etablierte Terminologie* — Gibt es einen eingeführten deutschen Fachbegriff? (z.B. "Bausteinsicht" für "Building Block View" in arc42)
+
+*Beispiel: "Steering Correctness"*
+- Wörtlich: "Lenkungsrichtigkeit" (selten, ungebräuchlich)
+- Intent: "Das Plugin blockt korrekt bei Regelverstössen"
+- *Entscheidung: "Steuerungskorrektheit"* (näher am Intent der Runtime-Enforcement)
+
+*Beispiel: "Workflow Continuity"*
+- Wörtlich: "Arbeitsablaufkontinuität" (unlesbar)
+- Intent: "Das Plugin darf den Workflow nicht unterbrechen"
+- *Entscheidung: "Workflow-Kontinuität"* (Fachbegriff bleibt englisch, Intent klar)
+
+==== Stufe 3: Fachbegriffe bleiben unübersetzt
+
+Folgende Begriffe werden in der deutschen Version *nicht übersetzt*, sondern als Fremdwörter übernommen:
+
+|===
+|Begriff |Begründung 
+
+|`RuleEngine` |Eigenname einer Komponente 
+|`tool.execute.before` |opencode API-Hook-Name 
+|`Hook` |opencode-Fachterminus 
+|`Steering Contract` / `Structural Coupling Contract` |Definierter Fachbegriff im Design 
+|`Fail-Open` |Etablierter englischer Architekturbegriff 
+|`Bypass` |Produkt-Feature-Name 
+|`Config Layer` |Komponentenname 
+|`Anchor` / `Semantic Anchor` |Name der Methodik 
+|`arc42` |Eigenname des Templates 
+|`ADR` |Standard-Abkürzung 
+|===
+
+== 3. Qualitätssicherung
+
+=== Übersetzung muss nachvollziehbar sein
+
+Jede Übersetzung muss im Git-Diff prüfbar sein. Eine deutsche Fassung ändert nie stillschweigend den Inhalt der englischen Fassung. Wenn eine Übersetzung vom Englischen abweichen _muss_ (z.B. weil ein Konzept im Deutschen anders strukturiert ist), wird die Abweichung in einem Kommentar markiert:
+
+[source,markdown]
+----
+> **Translation Note:** The German translation restructures this paragraph
+> because the original English list contains items that are interdependent.
+> Intent and domain correctness preserved.
+----
+
+=== Regelmässiger Abgleich
+
+Beide Sprachversionen müssen bei jeder inhaltlichen Änderung synchron aktualisiert werden. Der `MASTER-TODO.md` vermerkt, wenn eine Sprachversion hinterherhinkt.
+
+== 4. Verantwortlichkeiten
+
+|===
+|Rolle |Verantwortung 
+
+|Autor (EN) |Schreibt die englische Primärversion 
+|Übersetzer (DE) |Erstellt die deutsche Parallelversion nach dieser Konvention 
+|Reviewer |Prüft fachliche Korrektheit beider Sprachversionen 
+|===
+
+In der Praxis (Single-Developer-Modus): Beide Rollen fallen zusammen. Die Konvention dient als Selbstkontrolle.
+
+== 5. Verhältnis zu anderen Konventionen
+
+* *ADR-007* (Markdown-Format): Sprache und Format sind separate Concerns. Die Sprachkonvention gilt unabhängig vom Dateiformat (.md oder .adoc).
+* *ADR-012* (Bilinguale Dokumentation): Enthält die Entscheidungsbegründung für die Zweisprachigkeit.
+* *02-architecture-constraints.md*: Enthält die Language Constraint als harte Randbedingung.
+
+== 6. Ausnahmen
+
+In folgenden Fällen darf von der Zweisprachigkeit abgewichen werden:
+
+* *Temporäre Notizen und Arbeitsdokumente* (z.B. Session-Files in `SESSIONS/`) — nur in der Arbeitssprache
+* *Architecture Decision Records (ADRs)* — primär auf Deutsch (wie bisher), da ADR-Diskussionen im deutschen Teamkontext stattfinden. Eine englische Zusammenfassung kann ergänzt werden.
+* *Code-Kommentare und Inline-Dokumentation* — auf Englisch (Code-Standard)

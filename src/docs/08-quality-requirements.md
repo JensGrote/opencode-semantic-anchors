@@ -1,0 +1,181 @@
+# 8. Quality Requirements
+
+## 8.1 Quality Tree
+
+The Quality Tree derives from the Quality Goals (Section 1) and breaks them down into measurable sub-characteristics. Based on ISO 25010.
+
+```mermaid
+graph TB
+  Q[Plugin Quality] --> F1[Functional Correctness]
+  Q --> F2[Performance Efficiency]
+  Q --> F3[Compatibility]
+  Q --> F4[Usability]
+  Q --> F5[Reliability]
+  Q --> F6[Security]
+
+  F1 --> F1a[Steering Correctness<br/>BLOCK mode never silent-ignores]
+  F1 --> F1b[Reliability<br/>Determinism + Reproducibility + Traceability]
+  F1 --> F1c[Context Efficiency<br/>Zero context-token consumption]
+
+  F2 --> F2a[Response Time<br/>Hook checks <50ms]
+  F2 --> F2b[Resource Usage<br/>No additional RAM/CPU outside hooks]
+
+  F3 --> F3a[Plugin Coexistence<br/>No shared mutable state]
+  F3 --> F3b[Prompt Compatibility<br/>Coexists with AGENTS.md]
+
+  F4 --> F4a[Configuration Clarity<br/>YAML, presets cover 90%]
+  F4 --> F4b[Error Diagnosability<br/>Logs show why a block/warn occurred]
+
+  F5 --> F5a[Graceful Degradation<br/>Fail-open on error]
+  F5 --> F5b[Availability<br/>Plugin crash must not crash opencode]
+
+  F6 --> F6a[No Data Leakage<br/>Zero external HTTP calls]
+  F6 --> F6b[No PII in Logs<br/>Tool arguments are not logged]
+```
+
+> **Source Anchor (source):** ISO 25010 Quality Model. https://www.iso.org/standard/35733.html. Divides software quality into 8 main categories (Functional Suitability, Performance Efficiency, Compatibility, Usability, Reliability, Security, Maintainability, Portability).
+
+## 8.2 Quality Scenarios
+
+Each Quality Goal is specified by a concrete Quality Scenario (source: arc42 template, after Bosch / ATAM).
+
+### Scenario 1: Steering Correctness
+
+| Element | Description |
+|---------|-------------|
+| **Source** | User (or malicious agent) |
+| **Stimulus** | Executes a tool call that violates an active BLOCK contract (e.g., Step Confirmation after 3 calls) |
+| **Environment** | Normal opencode session, plugin active, contract in BLOCK mode |
+| **Artifact** | `tool.execute.before` hook |
+| **Response** | Hook throws `new Error()`, opencode shows block message |
+| **Response Measure** | 100% of violations are blocked. No silent ignore. Measurable via test suite. |
+
+### Scenario 2: Reliability (Determinism + Reproducibility + Traceability)
+
+| Element | Description |
+|---------|-------------|
+| **Source** | User |
+| **Stimulus** | Loads the same opencode session twice with identical config |
+| **Environment** | Same plugin version, same opencode version |
+| **Artifact** | RuleEngine, Logging |
+| **Response** | **(Determinism)** Same tool call sequence → same verdicts (allow/block). **(Reproducibility)** Session replay with identical input produces identical output. **(Traceability)** Log shows the triggering contract including rule state for each verdict. |
+| **Response Measure** | 100% reproducibility with same input (tested via deterministic test suite without LLM involvement). Every block/warn is traceable from the log. |
+
+### Scenario 3: Workflow Continuity
+
+| Element | Description |
+|---------|-------------|
+| **Source** | User (or agent, plugin error) |
+| **Stimulus** | Plugin throws unexpected error (config parse error, RuleEngine crash) |
+| **Environment** | opencode session with faulty config or bug in the plugin |
+| **Artifact** | Plugin (all layers) |
+| **Response** | Fail-Open: tool proceeds, error is logged. No session abort. |
+| **Response Measure** | 100% of hook errors result in `allow` (no throw). Measured by injecting errors in the test suite. |
+
+### Scenario 4: Configuration Clarity
+
+| Element | Description |
+|---------|-------------|
+| **Source** | New user |
+| **Stimulus** | Reads the config file and wants to add a new rule |
+| **Environment** | Local config (`opencode-semantic-anchors.yaml`) |
+| **Artifact** | ConfigLayer |
+| **Response** | User can define a new rule in <5 minutes without consulting documentation |
+| **Response Measure** | Usability test: 80% of new users complete a rule extension in <5 minutes |
+
+### Scenario 5: Composability
+
+| Element | Description |
+|---------|-------------|
+| **Source** | User |
+| **Stimulus** | Installs a second opencode plugin alongside opencode-semantic-anchors |
+| **Environment** | opencode with two active plugins |
+| **Artifact** | Plugin Entry Point |
+| **Response** | Both plugins run without conflicts. No shared mutable state. |
+| **Response Measure** | Integration test: opencode starts with both plugins, both hooks fire correctly. |
+
+### Scenario 6: Context Efficiency
+
+| Element | Description |
+|---------|-------------|
+| **Source** | User (or LLM agent) |
+| **Stimulus** | Runs a session with active steering contracts |
+| **Environment** | opencode session with 10 active contracts, plugin active |
+| **Artifact** | Plugin (Hooks) vs. System Prompt |
+| **Response** | The LLM context window contains NO steering rules. Rules are evaluated exclusively via plugin hooks at runtime. |
+| **Response Measure** | System prompt size is identical with/without active contracts. Zero additional tokens for steering. Verified by inspecting the system prompt. |
+
+### Scenario 7: Graceful Degradation
+
+| Element | Description |
+|---------|-------------|
+| **Source** | Plugin error (single contract is faulty) |
+| **Stimulus** | Config contains 5 contracts, one of which has an invalid trigger pattern |
+| **Environment** | opencode starts with faulty config |
+| **Artifact** | ConfigLoader |
+| **Response** | 4 valid contracts are loaded, 1 faulty contract is logged and ignored. Plugin still starts. |
+| **Response Measure** | 100% of valid contracts are active. Faulty contract is visible in the log. |
+
+## 8.3 ISO 25010 Mapping
+
+| ISO 25010 Category | Relevant Quality Goals | Measurement |
+|--------------------|------------------------|------------|
+| **Functional Suitability** | Steering Correctness (#1), Reliability (#2) | Test suite: 100% block rate on violations |
+| **Performance Efficiency** | Workflow Continuity (#3) — <50ms | Benchmark: hook latency <50ms across 1000 runs |
+| **Compatibility** | Composability (#5) | Integration test: coexistence with 2 other plugins |
+| **Usability** | Configuration Clarity (#4) | Usability test: 80% of users in <5 minutes |
+| **Reliability** | Graceful Degradation (Fail-Open) | Error injection test: 100% allow on errors |
+| **Security** | No Data Leakage, No PII in Logs | Code review + dependency scan |
+| **Maintainability** | (implicit through tests + ADRs) | Test coverage >80% |
+| **Portability** | (not relevant — opencode-specific) | |
+
+> **Source Anchor (source):** ISO 25010:2011 Systems and software Quality Requirements and Evaluation (SQuaRE). https://www.iso.org/standard/35733.html. The 8 quality categories are defined there.
+
+## 8.4 Verification of Quality Goals
+
+| Quality Goal | Verified by | Acceptance criterion |
+|-------------|------------|---------------------|
+| Steering Correctness | Unit tests (RuleEngine) | 100% of test contracts are evaluated correctly |
+| Reliability (Determinism) | Deterministic Test Suite | Same input → same verdict (1000 runs) |
+| Reliability (Reproducibility) | Session Replay Test | Identical input → identical output |
+| Reliability (Traceability) | Log Inspection | Every block/warn has contract ID and rule state in log |
+| Workflow Continuity | Fail-Open Integration Test | No session crash on injected errors |
+| Configuration Clarity | Config examples + Zod validation | Validation errors give clear messages |
+| Composability | Multi-Plugin Integration Test | opencode starts with 3 plugins without conflict |
+| Context Efficiency | System Prompt Inspection | Prompt size identical without/with plugin |
+
+## 8.5 Test Strategy
+
+### Scope
+| Level | What | Tooling | Location |
+|-------|------|---------|----------|
+| **Unit** | Single module in isolation (RuleEngine, Matcher, ConfigLoader) | vitest | `src/**/__tests__/*.test.ts` |
+| **Integration** | Module interaction (ConfigLoader → RuleEngine → Hook) | vitest | `src/**/__tests__/*.integration.test.ts` |
+| **Fail-Open** | Error injection at every layer → must return allow | vitest + fixtures | `src/**/__tests__/*.failopen.test.ts` |
+
+### Test Data
+- **Fixtures** (preferred): Real YAML files in `src/**/__fixtures__/` — loaded by ConfigLoader or parsed directly
+- **Mocks** (only when unavoidable): Network calls, file system (for non-ConfigLoader modules)
+
+### Coverage Targets
+| Metric | Target |
+|--------|--------|
+| Statements | >80% |
+| Branches | >80% |
+| Functions | >80% |
+| Lines | >80% |
+
+### TDD Requirement
+Every new feature module follows Test-Driven Development:
+1. Write the test (it fails)
+2. Implement the module (it passes)
+3. Refactor if needed
+4. Commit
+
+### CI Integration (planned)
+| Step | Tool |
+|------|------|
+| Type check | `tsc --noEmit` |
+| Lint (future) | `biome check` |
+| Unit tests | `vitest run` |
+| Coverage | `vitest run --coverage` |

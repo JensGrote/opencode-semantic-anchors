@@ -1,0 +1,188 @@
+# Querschnittskonzept: Installation & Nutzung mit LLMs
+
+## 1. Installationsmethoden
+
+### Methode 1: Lokale Plugin-Installation (v1 – aktuell)
+
+opencode unterstützt das Laden von Plugins aus dem `.opencode/plugins/`-Verzeichnis im Home-Verzeichnis oder Projekt des Benutzers.
+
+**Schritte:**
+
+1. **Plugin klonen oder herunterladen** nach `.opencode/plugins/opencode-semantic-anchors/`:
+   ```bash
+   git clone https://github.com/LLM-Coding/Semantic-Anchors.git
+   cp -r Semantic-Anchors/plugins/opencode-semantic-anchors ~/.opencode/plugins/
+   ```
+
+2. **Abhängigkeiten installieren:**
+   ```bash
+   cd ~/.opencode/plugins/opencode-semantic-anchors && npm install
+   ```
+
+3. **Plugin in `~/.config/opencode/opencode.jsonc` registrieren** (oder projekt-lokal `.opencode/opencode.jsonc`):
+   ```jsonc
+   {
+     "plugins": [
+       {
+         "name": "opencode-semantic-anchors",
+         "path": "~/.opencode/plugins/opencode-semantic-anchors"
+       }
+     ]
+   }
+   ```
+
+4. **Konfigurationsdatei erstellen** unter `~/.config/opencode/opencode-semantic-anchors.yaml`:
+   ```yaml
+   version: "1"
+   contracts:
+     - id: step-confirmation
+       mode: BLOCK
+       description: "Requires explicit 'Weiter?' confirmation every N tool calls"
+       anchorRefs: ["step-confirmation-anchor"]
+       triggers:
+         - type: tool
+           pattern: "*"
+           count: 3
+       maxOverrides: 3
+   presets:
+     software-developer:
+       - step-confirmation
+   settings:
+     maxOverrides: 3
+     stepConfirmationInterval: 3
+   ```
+
+   > **Hinweis:** `anchorRefs` ist optional. Contracts können auch **ohne** Semantic-Anchor-Referenz existieren — z. B. für projektspezifische Steering-Regeln:
+
+   ```yaml
+   contracts:
+     - id: german-response
+       mode: WARN
+       description: "All responses should be in German"
+       # kein anchorRefs — eigenständige Steering-Regel
+       triggers:
+         - type: message
+           pattern: ".*"
+       maxOverrides: 5
+
+     - id: mece-structure
+       mode: WARN
+       description: "Structured arguments using MECE principle"
+       triggers:
+         - type: message
+           pattern: "weil|deshalb|daher"
+       maxOverrides: 3
+   ```
+
+5. **opencode neu starten**, um das Plugin zu laden.
+
+> **Source Anchor (Quelle):** opencode Plugin Installation Guide. https://opencode.ai/docs/plugins/installation. Lokale Plugin-Installation verwendet das `.opencode/plugins/`-Verzeichnis. (Stand: Juni 2026, opencode v0.59+).
+
+### Methode 2: npm Globale Installation (v2 – zukünftig)
+
+Sobald veröffentlicht:
+```bash
+npm install -g @semantic-anchors/opencode-plugin
+```
+
+Registrierung in `opencode.jsonc`:
+```jsonc
+{
+  "plugins": [
+    { "name": "@semantic-anchors/opencode-plugin" }
+  ]
+}
+```
+
+> **Source Anchor (Quelle):** opencode plugin registry supports npm packages. https://opencode.ai/docs/plugins/npm. (Stand: Juni 2026).
+
+## 2. Speicherort der Konfigurationsdatei
+
+Das Plugin sucht nach `opencode-semantic-anchors.yaml` in der folgenden Reihenfolge (erster Treffer gewinnt):
+
+| Priorität | Pfad | Anwendungsfall |
+|-----------|------|---------------|
+| 1 | `$PROJECT_ROOT/.opencode/opencode-semantic-anchors.yaml` | Projektspezifische Regeln |
+| 2 | `~/.config/opencode/opencode-semantic-anchors.yaml` | Benutzerglobale Defaults |
+| 3 | Built-in Defaults | Fallback (nur Step-Confirmation) |
+
+## 3. Verifikation
+
+Nach der Installation überprüfen, ob das Plugin aktiv ist:
+
+```
+/anchor status
+```
+
+Erwartete Ausgabe:
+```
+Plugin: opencode-semantic-anchors v0.1.0
+Role: software-developer
+Active Contracts: [step-confirmation]
+Tool Calls: 0 | Overrides: 0/3
+Status: ✅ Active
+```
+
+## 4. Nutzung mit LLMs
+
+### Wie das LLM mit dem Plugin interagiert
+
+Das Plugin arbeitet während einer opencode-Session transparent. Das LLM „weiß" nicht direkt vom Plugin — es erfährt davon durch:
+
+| Interaktion | Was passiert | LLM sieht |
+|-------------|-------------|-----------|
+| **Tool-Aufruf löst BLOCK aus** | Plugin gibt `{ allow: false, message, overrideTool }` zurück | opencode zeigt Block-Meldung + `/anchor bypass` Option |
+| **Tool-Aufruf löst WARN aus** | Plugin gibt `{ allow: true, message }` zurück | Warnmeldung wird angezeigt, Tool wird ausgeführt |
+| **Benutzer gibt `/anchor bypass` ein** | Plugin erhöht Override-Zähler, erlaubt nächsten Tool-Aufruf | Tool wird normal ausgeführt |
+| **Benutzer gibt `/anchor status` ein** | Plugin gibt aktuellen Zustand zurück | Aktive Contracts, Zähler, Rolle |
+| **Agentenrolle wechselt** | Plugin lädt rollenbasierte Presets | Anderer Satz aktiver Contracts |
+
+### LLM-Benutzer-Workflow (typische Session)
+
+```
+User: "Implement the login feature"
+  → LLM beginnt mit der Arbeit
+  → Nach 3 Tool-Aufrufen: BLOCK (Step Confirmation)
+  → Benutzer sieht: "🚫 Step Confirmation: Already 3 tool-calls without confirmation. Continue?"
+  → Benutzer: "/anchor bypass 'yes, continuing intentional work'"
+  → LLM: fährt fort
+
+User: "Write the authentication module"
+  → Vor write-Tool: WARN (Source Anchor)
+  → Benutzer sieht: "⚠️ Source Anchor: No cited source found. Consider adding one."
+  → Benutzer (optional): fügt Quellenangabe zur Nachricht hinzu
+```
+
+### Konfiguration via YAML
+
+Das LLM **bearbeitet die YAML-Config nie direkt** — das ist die Verantwortung des Benutzers. Das Plugin wird einmal konfiguriert und setzt dann Regeln konsistent durch.
+
+### Mehrfach-Session-Verhalten
+
+- Session-State (`toolCallCount`, `overrideCount`) wird bei jedem opencode-Neustart zurückgesetzt
+- Rolle bleibt in `~/.config/opencode/opencode-semantic-anchors.yaml` über die `defaultRole`-Einstellung erhalten
+- Contracts sind sessionübergreifend stabil (gleiches YAML → gleiche Durchsetzung)
+
+## 5. Deinstallation
+
+**Lokale Installation:**
+```bash
+rm -rf ~/.opencode/plugins/opencode-semantic-anchors
+# Plugin-Eintrag aus opencode.jsonc entfernen
+```
+
+**npm-Installation:**
+```bash
+npm uninstall -g @semantic-anchors/opencode-plugin
+# Plugin-Eintrag aus opencode.jsonc entfernen
+```
+
+## 6. Abhängigkeiten
+
+| Abhängigkeit | Version | Zweck | Risiko |
+|-------------|---------|-------|--------|
+| `zod` | ^3.23 | YAML-Config-Validierung | Niedrig — stabile API, weit verbreitet |
+| `js-yaml` | ^4.1 | YAML-Parsing | Niedrig — ausgereifte Bibliothek |
+| `@opencode-ai/plugin` | ^0.59 | Plugin SDK | Mittel — folgt opencode-Releases |
+
+> **Source Anchor (Quelle):** Zod library: https://zod.dev/. js-yaml: https://github.com/nodeca/js-yaml. opencode Plugin SDK Typing: https://opencode.ai/docs/plugins/api.

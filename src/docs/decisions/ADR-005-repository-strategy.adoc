@@ -1,0 +1,192 @@
+= ADR-005: Repository Strategy — Own Standalone Repo + Reference in Semantic-Anchors Repo
+:jbake-type: page
+:jbake-status: published
+:jbake-menu: decisions
+
+
+== Status
+
+Proposed
+
+== Context
+
+The plugin is intended as a contribution to the LLM-Coding/Semantic-Anchors repository (analogous to the Claude Code plugin under `plugins/semantic-anchors/`). However, several factors challenge this simple assumption:
+
+. *Release cycle*: The Semantic-Anchors repo has its own release rhythm. Our plugin might need faster releases (bug fixes, security).
+. *npm publish*: Publishing a plugin located in a subdirectory of a foreign repo is complicated (CI/CD, version management).
+. *opencode Ecosystem*: opencode has its own plugin list (https://opencode.ai/docs/ecosystem#plugins). A standalone repo can be listed there.
+. *Issues/PRs*: Own issues and PRs are easier to manage than issues in a foreign repo.
+. *CI/CD*: Own GitHub Actions are independent of the Semantic-Anchors workflow.
+
+The decision concerns: Where does the code live? Where is development done? How is it released? How is it contributed?
+
+== Alternatives Considered
+
+=== Option A: Semantic-Anchors Repo Only
+
+All code lives exclusively as `plugins/opencode-semantic-anchors/` in the LLM-Coding/Semantic-Anchors repository.
+
+----
+LLM-Coding/Semantic-Anchors/
+├── plugins/
+│   └── opencode-semantic-anchors/   ← Code lives here
+├── docs/
+└── ...
+----
+
+*Advantages:*
+- Single place for everything (Single Source of Truth)
+- Analogous to the Claude Code plugin (existing precedent)
+- Maximum visibility in the Semantic-Anchors community
+- No sync effort between repos
+- Contribution is "just a PR"
+
+*Disadvantages:*
+- *No own npm package* (or very cumbersome)
+- Release cycle coupled to Semantic-Anchors maintainers
+- Own CI/CD only via Semantic-Anchors workflow
+- Issues/PRs share the pool with the entire repo
+- npm publish would have to be done by Semantic-Anchors maintainers
+- *No entry in the opencode Ecosystem* (where npm packages are listed)
+
+=== Option B: Own Standalone Repo (chosen)
+
+Code lives in its own GitHub repository, independent of the Semantic-Anchors repo.
+
+----
+github.com/JensGrote/opencode-semantic-anchors/
+├── src/
+├── package.json
+├── dist/
+└── ...
+----
+
+*Advantages:*
+- *Own npm package* (publish anytime)
+- *Own CI/CD* (tests, build, publish)
+- *Own Issues/PRs* (focused on the plugin)
+- *opencode Ecosystem* can list the package
+- Independent release cycle (bug fixes immediately)
+- Full control over branch strategy and releases
+
+*Disadvantages:*
+- *Less visibility* in the Semantic-Anchors community
+- Contribution to the Semantic-Anchors repo requires a separate reference
+- Own repository = own maintenance (issues, security, dependencies)
+- No "auto-discovery" by Semantic-Anchors readers
+
+=== Option C: Both — Standalone Repo + Subtree/Submodule in Semantic-Anchors Repo
+
+Code lives in the standalone repo, but is integrated into the Semantic-Anchors repo via `git subtree` or `git submodule`.
+
+----
+LLM-Coding/Semantic-Anchors/
+├── plugins/
+│   └── opencode-semantic-anchors/   ← subtree from own repo
+----
+
+*Advantages:*
+- Best of both worlds (own repo + visibility in Semantic-Anchors)
+- Contribution = update of the subtree
+- npm publish from own repo
+
+*Disadvantages:*
+- *Highest sync effort* — two repos must stay consistent
+- Subtree merges are error-prone
+- Submodules are UX-problematic ("forgot to update submodule")
+- Two different contribution paths (direct vs subtree) confuse contributors
+- Additional effort for Semantic-Anchors maintainers
+
+=== Option D: Fork + Upstream PR
+
+Develop the plugin in its own repo, then bring it into the Semantic-Anchors repo via fork+PR, then only maintain it in the Semantic-Anchors repo.
+
+*Disadvantages:*
+- *One-time effort* — after contribution, the own repo becomes obsolete
+- Fork chain is confusing (upstream vs origin)
+- After contribution, no own release cycle remains
+- GitHub forks are suboptimal as permanent development environments
+
+== Evaluation Criteria
+
+|===
+|Criterion |Weight |Description 
+
+|Release independence |High |Own release cycle (bug fixes, security) 
+|npm publish capability |High |Must be publishable as npm package 
+|Visibility |Medium |Findability for opencode users and Semantic-Anchors community 
+|Maintainability |High |Issues, PRs, CI/CD without dependency on external maintainers 
+|Sync effort |Low |No manual sync between repos 
+|Contribution path |Medium |Easy path to the Semantic-Anchors repo 
+|===
+
+== Decision
+
+*Option B: Own Standalone Repo with Cross-Links* was chosen.
+
+Rationale:
+- *Pragmatism*: An own repo gives us full control over releases, CI/CD, issues, and npm publish
+- *opencode Ecosystem*: Entry in the plugin list requires an npm package — this works cleanly only with an own repo
+- *Semantic Anchors Ecosystem*: Visibility is achieved through cross-links in both directions (not through subtree)
+- *Release speed*: Bug fixes and security patches can be released immediately without waiting for Semantic-Anchors maintainers
+- *Low sync effort*: Unlike Option C (Subtree), no regular sync effort is incurred
+- *Precedent*: `agentcontract/spec` is also its own repo (not a subdirectory of Semantic-Anchors) — the established pattern is standalone
+
+=== Cross-Linking Strategy
+
+The connection to both ecosystems is achieved through active cross-links, not through repository structure:
+
+----
+┌──────────────────────────┐       ┌──────────────────────────┐
+│  opencode Ecosystem       │       │  Semantic Anchors        │
+│  (opencode.ai/docs)       │       │  (GitHub Repo)           │
+│                           │       │                          │
+│  Plugin list ─────────────┼───────┼─► README.md / CLAUDE.md  │
+│  "see also"               │       │  "see also"              │
+└──────────────────────┼───┘       └─────────────────┼────────┘
+                       │                             │
+                       ▼                             ▼
+              ┌──────────────────────────────────────────┐
+              │  Standalone Repo                          │
+              │  github.com/JensGrote/                    │
+              │    opencode-semantic-anchors              │
+              │                                           │
+              │  - README: "Built for opencode"           │
+              │  - README: "Part of Semantic Anchors"     │
+              │  - opencode.jsonc example                 │
+              │  - Anchor-based presets                   │
+              └──────────────────────────────────────────┘
+----
+
+Specifically:
+1. *Our README.md* links to opencode Plugin Docs + Semantic-Anchors Repository
+2. *opencode Ecosystem* (https://opencode.ai/docs/ecosystem#plugins) lists our plugin
+3. *Semantic-Anchors README/CLAUDE.md* links to our plugin as opencode integration
+4. *npm package* has `opencode` and `semantic-anchors` as keywords
+
+== Consequences
+
+* *Positive:* Full control over releases, CI/CD, issues, and npm publish
+* *Positive:* Independence from Semantic-Anchors maintainers for bug fix releases
+* *Positive:* Entry in the opencode Ecosystem possible (npm package prerequisite)
+* *Positive:* Visibility in both ecosystems through cross-links
+* *Positive:* Own issues/PRs without "noise" of the Semantic-Anchors repo
+* *Negative:* Cross-links must be actively maintained (no "auto-discovery")
+* *Negative:* Own repo = own public relations (README, docs, visibility)
+* *Negative:* No automatic entry in the Semantic-Anchors repo (requires PR)
+* *Trade-off:* Independence against visibility — addressed through cross-links
+
+== Related
+
+* ADR-004: Take before Buy before Make (Repository is a consequence of the Make decision)
+* PLAN.md (must be updated: contribution not as subdirectory, but as reference)
+* MASTER-TODO.md Phase 5 (PR + npm publish)
+* opencode Ecosystem: https://opencode.ai/docs/ecosystem#plugins
+* Semantic-Anchors Claude Code Plugin (precedent for subdirectory approach under `plugins/`)
+
+== Sources
+
+* opencode Ecosystem — Plugins: https://opencode.ai/docs/ecosystem#plugins
+* LLM-Coding/Semantic-Anchors — Plugins directory: https://github.com/LLM-Coding/Semantic-Anchors/tree/main/plugins
+* agentcontract/spec (own repo, not subdirectory): https://github.com/agentcontract/spec
+* npm Publishing: https://docs.npmjs.com/publishing-packages
