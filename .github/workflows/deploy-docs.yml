@@ -40,33 +40,19 @@ jobs:
         continue-on-error: true
       - name: Copy converted files
         run: |
-          find build -name '*.adoc' | while read f; do
-            rel="${f#build/}"
-            mkdir -p "src/docs/$(dirname "$rel")"
-            cp "$f" "src/docs/$rel"
-          done
-      - name: Add jBake headers
-        run: |
-          find src/docs -name '*.adoc' | while read file; do
-            if ! grep -q 'jbake-type' "$file"; then
-              read -r first_line < "$file"
-              case "$(dirname "${file#src/docs/}")" in
-                concepts*) menu="concepts" ;;
-                decisions*) menu="decisions" ;;
-                *) menu="arc42" ;;
-              esac
-              {
-                echo "$first_line"
-                echo ":jbake-type: page"
-                echo ":jbake-status: published"
-                echo ":jbake-menu: $menu"
-                echo ""
-                tail -n +2 "$file"
-              } > "${file}.tmp" && mv "${file}.tmp" "$file"
-            fi
+          for dir in en de; do
+            [ -d "build/$dir" ] && find "build/$dir" -name '*.adoc' -exec sh -c '
+              for f; do
+                rel="${f#build/}"
+                mkdir -p "src/docs/$(dirname "$rel")"
+                cp "$f" "src/docs/$rel"
+              done
+            ' sh {} +
           done
       - name: Remove Markdown sources (conflict with .adoc in jBake)
         run: find src/docs -name '*.md' -delete
+      - name: Clean microsite (avoid stale files from previous builds)
+        run: rm -rf build/microsite
       - name: Generate site
         run: ./dtcw generateSite
       - name: Upload Pages artifact
