@@ -133,10 +133,13 @@ find src/docs -name '*.adoc' | while read file; do
   fi
 done
 
-# 5. HTML-Microsite generieren
+# 5. Markdown-Quellen entfernen (Konflikt mit .adoc in jBake)
+find src/docs -name '*.md' -delete
+
+# 6. HTML-Microsite generieren
 ./dtcw generateSite
 
-# 6. Im Browser öffnen
+# 7. Im Browser öffnen
 firefox build/microsite/output/index.html
 ```
 
@@ -144,6 +147,11 @@ firefox build/microsite/output/index.html
 - `exportMarkdown` schreibt `.adoc`-Dateien nach `build/`, nicht nach `src/docs/`
 - `generateSite` liest `.adoc`-Dateien aus `src/docs/` (wie in `docToolchainConfig.groovy` konfiguriert: `inputPath = 'src/docs'`)
 - jBake benötigt bestimmte Frontmatter-Header (`:jbake-type:`, `:jbake-status:`, `:jbake-menu:`), um Seiten korrekt zu klassifizieren und zu publizieren — docToolchains `exportMarkdown` fügt diese Header nicht automatisch hinzu
+
+**Warum der .md-Entfernungs-Schritt nötig ist:**
+- Wenn `.md`- und `.adoc`-Dateien mit dem gleichen Basisnamen (z. B. `01-introduction-and-goals.md` + `.adoc`) im selben Verzeichnis liegen, priorisiert jBake die `.md`-Version
+- Da `.md`-Dateien keine jBake-Header haben, werden sie stillschweigend übersprungen — und ihre `.adoc`-Gegenstücke werden ebenfalls nicht gerendert
+- Das Entfernen der `.md`-Dateien vor `generateSite` stellt sicher, dass jBake nur die `.adoc`-Dateien verarbeitet, die die korrekten Header besitzen
 
 ### GitHub-Actions-Pipeline
 
@@ -154,8 +162,9 @@ Der CI-Workflow in `.github/workflows/deploy-docs.yml` spiegelt die lokale Pipel
 3. **`rsync -a docs/ src/docs/`** — .md-Quellen ins Arbeitsverzeichnis synchronisieren
 4. **`./dtcw exportMarkdown`** — `.md → .adoc` nach `build/` konvertieren
 5. **Copy + jBake-Header** — `.adoc` zurück nach `src/docs/` kopieren und Frontmatter hinzufügen
-6. **`./dtcw generateSite`** — HTML-Microsite in `build/microsite/output/` generieren
-7. `actions/upload-pages-artifact@v3` + `actions/deploy-pages@v4` — auf GitHub Pages publizieren
+6. **.md-Dateien entfernen** — löscht `.md`-Dateien aus `src/docs/` um jBake-Konflikte zu vermeiden
+7. **`./dtcw generateSite`** — HTML-Microsite in `build/microsite/output/` generieren
+8. `actions/upload-pages-artifact@v3` + `actions/deploy-pages@v4` — auf GitHub Pages publizieren
 
 **Trigger:** Der Workflow läuft bei Pushes auf `main`, die Dateien unter `docs/**`, `docToolchainConfig.groovy` oder die Workflow-Datei selbst ändern. Manueller Start via `workflow_dispatch` ist ebenfalls möglich.
 
@@ -168,8 +177,8 @@ Der CI-Workflow in `.github/workflows/deploy-docs.yml` spiegelt die lokale Pipel
 - **Positiv:** Klare Trennung von Quellen (`docs/`) und generierten Artefakten (`src/docs/` + `build/`)
 - **Positiv:** Git-History bleibt sauber — nur `.md`-Dateien ändern sich, generierte `.adoc` und HTML sind ausgeschlossen
 - **Negativ:** Build-Abhängigkeit von Java 17 + docToolchain 3.5.0
-- **Negativ:** Zwei-Schritt-Pipeline (exportMarkdown → copy+headers → generateSite) ist nicht offensichtlich — muss dokumentiert sein
-- **Negativ:** Lokaler Build erfordert die vollständige 6-Schritt-Pipeline; ein einzelnes `./dtcw generateSite` ohne vorherige Schritte produziert veraltete Ausgabe
+- **Negativ:** Mehrstufige Pipeline (exportMarkdown → copy+headers → .md entfernen → generateSite) ist nicht offensichtlich — muss dokumentiert sein
+- **Negativ:** Lokaler Build erfordert die vollständige 7-Schritt-Pipeline; ein einzelnes `./dtcw generateSite` ohne vorherige Schritte produziert veraltete Ausgabe
 - **Negativ:** Mermaid-Diagramme müssen ggf. in PlantUML konvertiert werden (bei Contribution upstream)
 - **Trade-off:** Automatisierungs-Overhead (Pipeline-Konfiguration) vs. manueller Konvertierungsaufwand
 

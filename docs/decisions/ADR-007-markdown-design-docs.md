@@ -133,10 +133,13 @@ find src/docs -name '*.adoc' | while read file; do
   fi
 done
 
-# 5. Generate the HTML microsite
+# 5. Remove Markdown sources (conflict with .adoc in jBake)
+find src/docs -name '*.md' -delete
+
+# 6. Generate the HTML microsite
 ./dtcw generateSite
 
-# 6. Open in browser
+# 7. Open in browser
 firefox build/microsite/output/index.html
 ```
 
@@ -144,6 +147,11 @@ firefox build/microsite/output/index.html
 - `exportMarkdown` writes `.adoc` files to `build/`, not to `src/docs/`
 - `generateSite` reads `.adoc` files from `src/docs/` (as configured in `docToolchainConfig.groovy`: `inputPath = 'src/docs'`)
 - jBake requires specific front-matter (`:jbake-type:`, `:jbake-status:`, `:jbake-menu:`) to correctly classify and publish pages — docToolchain's `exportMarkdown` does not add these headers automatically
+
+**Why the .md removal step is necessary:**
+- When `.md` and `.adoc` files with the same base name (e.g. `01-introduction-and-goals.md` + `.adoc`) exist in the same directory, jBake gives precedence to the `.md` version
+- Since `.md` files lack jBake headers, they are skipped silently — and their `.adoc` counterparts are also not rendered
+- Removing `.md` files before `generateSite` ensures jBake processes only the `.adoc` files, which have the correct headers
 
 ### GitHub Actions Pipeline
 
@@ -154,8 +162,9 @@ The CI workflow in `.github/workflows/deploy-docs.yml` mirrors the local pipelin
 3. **`rsync -a docs/ src/docs/`** — syncs source `.md` files into the working directory
 4. **`./dtcw exportMarkdown`** — converts `.md → .adoc` to `build/`
 5. **Copy + jBake headers** — copies `.adoc` back to `src/docs/` and adds front-matter
-6. **`./dtcw generateSite`** — generates HTML microsite in `build/microsite/output/`
-7. `actions/upload-pages-artifact@v3` + `actions/deploy-pages@v4` — publishes to GitHub Pages
+6. **Remove .md files** — deletes `.md` files from `src/docs/` to avoid jBake conflicts
+7. **`./dtcw generateSite`** — generates HTML microsite in `build/microsite/output/`
+8. `actions/upload-pages-artifact@v3` + `actions/deploy-pages@v4` — publishes to GitHub Pages
 
 **Trigger:** The workflow runs on pushes to `main` that change files under `docs/**`, `docToolchainConfig.groovy`, or the workflow file itself. It can also be triggered manually via `workflow_dispatch`.
 
@@ -168,8 +177,8 @@ The CI workflow in `.github/workflows/deploy-docs.yml` mirrors the local pipelin
 - **Positive:** Clear separation of source (`docs/`) and generated artifacts (`src/docs/` + `build/`)
 - **Positive:** Git history stays clean — only `.md` files change, generated `.adoc` and HTML are excluded
 - **Negative:** Build dependency on Java 17 + docToolchain 3.5.0
-- **Negative:** Two-step pipeline (exportMarkdown → copy+headers → generateSite) is non-obvious — must be documented
-- **Negative:** Local build requires the full 6-step pipeline; a single `./dtcw generateSite` without the prior steps produces stale output
+- **Negative:** Multi-step pipeline (exportMarkdown → copy+headers → remove .md → generateSite) is non-obvious — must be documented
+- **Negative:** Local build requires the full 7-step pipeline; a single `./dtcw generateSite` without the prior steps produces stale output
 - **Negative:** Mermaid diagrams may need to be converted to PlantUML if contributing upstream
 - **Trade-off:** Automation overhead (pipeline config) vs. manual conversion effort
 

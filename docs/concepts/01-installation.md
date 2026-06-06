@@ -285,10 +285,13 @@ find src/docs -name '*.adoc' | while read file; do
   fi
 done
 
-# 5. Generate the HTML microsite
+# 5. Remove Markdown sources (conflict with .adoc in jBake)
+find src/docs -name '*.md' -delete
+
+# 6. Generate the HTML microsite
 ./dtcw generateSite
 
-# 6. Open in browser
+# 7. Open in browser
 firefox build/microsite/output/index.html
 ```
 
@@ -300,19 +303,21 @@ firefox build/microsite/output/index.html
 | 2 | `exportMarkdown` | docToolchain converts `.md` → `.adoc`, writes to `build/` |
 | 3 | Copy `.adoc` | Moves generated AsciiDoc back to `src/docs/` where `generateSite` expects them |
 | 4 | jBake headers | Adds `:jbake-type:`, `:jbake-status:`, `:jbake-menu:` to each `.adoc` — required for jBake site generation |
-| 5 | `generateSite` | docToolchain runs jBake to produce HTML in `build/microsite/output/` |
-| 6 | Open browser | View the result locally |
+| 5 | `find ... -delete` | Removes `.md` files to prevent jBake conflicts — same-named `.md` + `.adoc` files cause jBake to skip both |
+| 6 | `generateSite` | docToolchain runs jBake to produce HTML in `build/microsite/output/` |
+| 7 | Open browser | View the result locally |
 
 ### Why not just run `./dtcw generateSite`?
 
-`generateSite` reads `.adoc` files from `src/docs/`. If you skip steps 1-4, it will either:
+`generateSite` reads `.adoc` files from `src/docs/`. If you skip steps 1-5, it will either:
 - **Fail** if `src/docs/` is empty (fresh clone, gitignored directory)
 - **Produce stale output** if `src/docs/` contains `.adoc` from a previous build that is out of sync with the current `.md` sources
+- **Miss arc42 pages** if `.md` files are still present in `src/docs/` (jBake prioritises `.md` over `.adoc` for same-named files)
 
 Always run the full pipeline.
 
 ### GitHub Actions (CI)
 
-The same pipeline runs automatically in `.github/workflows/deploy-docs.yml` on every push to `main` that touches files under `docs/`. The CI workflow mirrors steps 1-5 exactly, then uploads `build/microsite/output/` as a Pages artifact and deploys to GitHub Pages.
+The same pipeline runs automatically in `.github/workflows/deploy-docs.yml` on every push to `main` that touches files under `docs/`. The CI workflow mirrors steps 1-6 exactly, then uploads `build/microsite/output/` as a Pages artifact and deploys to GitHub Pages.
 
 > **Source Anchor:** docToolchain exportMarkdown task: https://doctoolchain.org/tasks/exportMarkdown.html. docToolchain generateSite task: https://doctoolchain.org/tasks/generateSite.html. jBake: https://jbake.org. GitHub Pages: https://pages.github.com/.
