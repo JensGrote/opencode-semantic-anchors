@@ -114,7 +114,7 @@ Conversion to `.adoc` occurs only at contribution time to the Semantic-Anchors r
 
 ### Decision 7: Anchor Rules are bundled at design-time (not fetched at runtime)
 
-Anchor rules are **not fetched from GitHub at runtime**. They are derived from the Semantic-Anchors repository at design time and bundled as a default YAML preset within the plugin package. Full rationale, alternatives, and consequences in [ADR-013](../decisions/ADR-013-design-time-bundling.md).
+Anchor rules are **not fetched from GitHub at runtime**. They are derived from the Semantic-Anchors repository at design time and bundled as a default YAML preset within the plugin package. Full rationale, alternatives, and consequences in [ADR-013](../09-adrs/ADR-013-design-time-bundling.md).
 
 ## Quality Goal Realization
 

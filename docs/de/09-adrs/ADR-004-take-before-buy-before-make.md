@@ -150,7 +150,7 @@ Das Plugin füllt eine **echte Lücke** — keine der existierenden Lösungen de
 - Entscheidung 4 in 04-solution-strategy.md
 - 02-architecture-constraints.md (Process Constraints)
 - 03-system-scope-and-context.md (Take before Buy before Make Check)
-- docs/concepts/02-update-and-maintenance.md (Dependency Management, Renovate)
+- docs/08-concepts/02-update-and-maintenance.md (Dependency Management, Renovate)
 
 ## Sources
 - LLM-Coding/Semantic-Anchors — Repo: https://github.com/LLM-Coding/Semantic-Anchors

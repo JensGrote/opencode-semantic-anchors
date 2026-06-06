@@ -114,7 +114,7 @@ Rationale:
 ### Negative Mitigation
 The trade-off (flexibility vs. methodological rigour) is addressed through **explicit documentation** in installation and README:
 
-1. **Installation docs** (`docs/concepts/01-installation.md` and future README.md):
+1. **Installation docs** (`docs/08-concepts/01-installation.md` and future README.md):
    - Primary example shows contracts **with** `anchorRefs` (Best Practice)
    - Secondary example shows contracts **without** `anchorRefs` (for project-specific rules)
    - Explicit note: "`anchorRefs` is optional, but recommended — it documents which Semantic Anchor justifies the rule"

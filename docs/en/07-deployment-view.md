@@ -1,8 +1,8 @@
-# 7. Deployment-Sicht
+# 7. Deployment View
 
-## 7.1 Infrastrukturlandschaft
+## 7.1 Infrastructure Landscape
 
-Das Plugin hat einen **minimalen Infrastruktur-Footprint**. Es läuft vollständig innerhalb des opencode-Prozesses auf dem Rechner des Benutzers:
+The plugin has a **minimal infrastructure footprint**. It runs entirely within the opencode process on the user's machine:
 
 ```mermaid
 graph TB
@@ -30,7 +30,7 @@ graph TB
 
 > **Source Anchor (Quelle):** opencode Plugin Installation Guide: https://opencode.ai/docs/plugins#use-a-plugin. "Place JavaScript or TypeScript files in the plugin directory. `.opencode/plugins/` - Project-level plugins. `~/.config/opencode/plugins/` - Global plugins."
 
-### Deployment-Diagramm (C4)
+### Deployment Diagram (C4)
 
 ```mermaid
 C4Deployment
@@ -53,45 +53,45 @@ C4Deployment
   Rel(plugin, config, "Reads at startup")
 ```
 
-## 7.2 Laufzeitumgebung
+## 7.2 Runtime Environment
 
-| Aspekt | Spezifikation | Quelle |
+| Aspect | Specification | Source |
 |--------|--------------|--------|
-| Runtime | **Node.js ≥ 18** oder **Bun** (opencode-Runtime) | opencode läuft auf Node.js oder Bun |
-| Prozess | **Single Process** — Plugin wird als Modul in opencode geladen | opencode Plugin SDK |
-| Betriebssystem | Linux, macOS, Windows (opencode-Support) | opencode plattformunabhängig |
-| Start | **Lazy** — Plugin wird beim ersten Hook-Aufruf initialisiert | Plugin SDK Lifecycle |
-| Speicher | **In-Memory only** — Session-State lebt im RAM, keine Persistenz | Architecture Constraint |
-| Netzwerk | **Zero outbound** — keine externen HTTP-Aufrufe | Architecture Constraint |
+| Runtime | **Node.js ≥ 18** or **Bun** (opencode runtime) | opencode läuft auf Node.js oder Bun |
+| Process | **Single process** — plugin lädt als Modul in opencode | opencode Plugin SDK |
+| Operating System | Linux, macOS, Windows (opencode Support) | opencode plattformunabhängig |
+| Startup | **Lazy** — Plugin wird beim ersten Hook-Aufruf initialisiert | Plugin SDK Lifecycle |
+| Memory | **In-memory only** — Session-State lebt im RAM, kein Persistenz | Architecture Constraint |
+| Network | **Zero outbound** — keine externen HTTP-Calls | Architecture Constraint |
 
 > **Source Anchor (Quelle):** opencode Systemvoraussetzungen. https://opencode.ai/docs. opencode unterstützt Linux, macOS und Windows. Läuft auf Node.js und Bun.
 
-### Prozessarchitektur
+### Prozess-Architektur
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│               Node.js / Bun-Prozess                          │
+│                   Node.js / Bun Process                      │
 │                                                              │
-│  ┌──────────────────────────────────────────────────────┐    │
-│  │                  opencode                              │    │
-│  │  ┌────────────────────────────────────────────────┐  │    │
-│  │  │         Plugin Isolation Boundary               │  │    │
-│  │  │  ┌──────────────────┐  ┌──────────────────┐   │  │    │
-│  │  │  │ Config Layer     │  │ RuleEngine       │   │  │    │
-│  │  │  │ (YAML Loader)    │  │ (evaluate, match) │   │  │    │
-│  │  │  └──────────────────┘  └──────────────────┘   │  │    │
-│  │  │  ┌──────────────────┐  ┌──────────────────┐   │  │    │
-│  │  │  │ Hook Handler     │  │ Custom Tools     │   │  │    │
-│  │  │  │ (tool.execute)   │  │ (bypass, status) │   │  │    │
-│  │  │  └──────────────────┘  └──────────────────┘   │  │    │
-│  │  └────────────────────────────────────────────────┘  │    │
-│  └──────────────────────────────────────────────────────┘    │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │                    opencode                            │   │
+│  │  ┌────────────────────────────────────────────────┐  │   │
+│  │  │         Plugin Isolation Boundary               │  │   │
+│  │  │  ┌──────────────────┐  ┌──────────────────┐   │  │   │
+│  │  │  │ Config Layer     │  │ RuleEngine       │   │  │   │
+│  │  │  │ (YAML Loader)    │  │ (evaluate, match) │   │  │   │
+│  │  │  └──────────────────┘  └──────────────────┘   │  │   │
+│  │  │  ┌──────────────────┐  ┌──────────────────┐   │  │   │
+│  │  │  │ Hook Handler     │  │ Custom Tools     │   │  │   │
+│  │  │  │ (tool.execute)   │  │ (bypass, status) │   │  │   │
+│  │  │  └──────────────────┘  └──────────────────┘   │  │   │
+│  │  └────────────────────────────────────────────────┘  │   │
+│  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 7.3 Deployment-Optionen
+## 7.3 Deployment Options
 
-### Option 1: Lokales Plugin-Verzeichnis (v1 — aktuell)
+### Option 1: Local Plugin Directory (v1 — current)
 
 ```
 ~/.config/opencode/
@@ -107,7 +107,7 @@ C4Deployment
 
 **Installation:**
 ```bash
-# 1. Ins Plugin-Verzeichnis klonen
+# 1. Clone ins Plugin-Verzeichnis
 git clone https://github.com/LLM-Coding/Semantic-Anchors.git
 cp -r Semantic-Anchors/plugins/opencode-semantic-anchors ~/.config/opencode/plugins/
 
@@ -115,12 +115,12 @@ cp -r Semantic-Anchors/plugins/opencode-semantic-anchors ~/.config/opencode/plug
 cd ~/.config/opencode/plugins/opencode-semantic-anchors && npm install
 
 # 3. In opencode.jsonc registrieren
-# (Plugin-Verzeichnis wird automatisch geladen — keine Registrierung nötig)
+# (plugin directory wird automatisch geladen — keine Registrierung nötig)
 ```
 
 > **Source Anchor (Quelle):** opencode — From local files. https://opencode.ai/docs/plugins#from-local-files. "Place JavaScript or TypeScript files in the plugin directory. Files in these directories are automatically loaded at startup."
 
-### Option 2: npm-Paket (v2 — zukünftig)
+### Option 2: npm Package (v2 — future)
 
 ```
 npm install -g @semantic-anchors/opencode-plugin
@@ -135,7 +135,7 @@ npm install -g @semantic-anchors/opencode-plugin
 
 > **Source Anchor (Quelle):** opencode — From npm. https://opencode.ai/docs/plugins#from-npm. "Specify npm packages in your config file. Both regular and scoped npm packages are supported."
 
-### Option 3: Projekt-lokale Installation
+### Option 3: Project-Local Install
 
 Für team-spezifische Steering-Regeln kann das Plugin auch pro Projekt installiert werden:
 
@@ -150,27 +150,27 @@ my-project/
 
 > **Source Anchor (Quelle):** opencode Load order. https://opencode.ai/docs/plugins#load-order. "Project config (opencode.json) → Project plugin directory (.opencode/plugins/)."
 
-## 7.4 Config-Deployment
+## 7.4 Configuration Deployment
 
-### Config-Datei-Pfade (Priorität)
+### Config File Locations (Priority)
 
-| Priorität | Pfad | Anwendungsfall | Überschreibung |
-|----------|-------|---------------|----------------|
-| 1 | `$PROJECT/.opencode/opencode-semantic-anchors.yaml` | Projektspezifische Regeln | Überschreibt User-Config |
+| Priority | Location | Use Case | Override |
+|----------|----------|----------|----------|
+| 1 | `$PROJECT/.opencode/opencode-semantic-anchors.yaml` | Projekt-spezifische Regeln | Überschreibt User-Config |
 | 2 | `~/.config/opencode/opencode-semantic-anchors.yaml` | User-globale Defaults | Überschreibt Built-in |
 | 3 | `plugins/opencode-semantic-anchors/dist/defaults.yaml` | Built-in Defaults | Fallback |
 
 ### Config-Reload ohne Plugin-Neustart
 
 Das `/anchor config-reload` Tool erlaubt das Neuladen der Config zur Laufzeit:
-- Liest YAML erneut von der Festplatte
+- Liest YAML neu von Disk
 - Validiert gegen Zod-Schema
-- Aktualisiert die RuleEngine mit neuen Contracts
+- Aktualisiert RuleEngine mit neuen Contracts
 - SessionState (overrideCount, toolCallCount) wird **nicht** zurückgesetzt
 
-## 7.5 Distributions-Pipeline
+## 7.5 Distribution Pipeline
 
-### Build & Paketierung
+### Build & Package
 
 ```mermaid
 flowchart LR
@@ -180,16 +180,16 @@ flowchart LR
   DIST -->|cp| LOCAL[.opencode/plugins/]
 ```
 
-| Stufe | Tool | Ausgabe |
-|-------|------|---------|
-| Kompilieren | `tsup` (oder `tsc`) | `dist/index.js` (CommonJS) |
-| Typdefinitionen | `tsc --declaration` | `dist/index.d.ts` |
-| Paketieren | `npm pack` | `opencode-semantic-anchors-X.Y.Z.tgz` |
-| Veröffentlichen | `npm publish` | `@semantic-anchors/opencode-plugin` |
+| Stage | Tool | Output |
+|-------|------|--------|
+| Compile | `tsup` (oder `tsc`) | `dist/index.js` (CommonJS) |
+| Type definitions | `tsc --declaration` | `dist/index.d.ts` |
+| Package | `npm pack` | `opencode-semantic-anchors-X.Y.Z.tgz` |
+| Publish | `npm publish` | `@semantic-anchors/opencode-plugin` |
 
 > **Source Anchor (Quelle):** tsup documentation: https://tsup.egoist.dev/. "Bundle your TypeScript library with no configuration."
 
-### Paket-Inhalt (npm)
+### Package Contents (npm)
 
 ```
 @semantic-anchors/opencode-plugin
@@ -203,34 +203,34 @@ flowchart LR
 └── CHANGELOG.md
 ```
 
-### Versionskompatibilität
+### Version Compatibility
 
-| Plugin-Version | opencode-Version | API-Änderungen |
-|---------------|-----------------|---------------|
-| 0.x (alpha) | 0.59+ | Plugin API (funktionsbasiert) |
+| Plugin Version | opencode Version | API Changes |
+|---------------|-----------------|-------------|
+| 0.x (alpha) | 0.59+ | Plugin API (function-based) |
 | 1.0.0 | 0.60+ | Stabiler Release |
 | 2.0.0 | 1.0+ | Mögliche Breaking Changes |
 
-## 7.6 Deployment-Grenzen
+## 7.6 Deployment Boundary
 
-### Innerhalb des Scopes (WIRD deployt)
+### Inside Scope (what IS deployed)
 
-| Artefakt | Verteilung | Enthalten |
+| Artifact | Verteilung | Enthalten |
 |----------|-----------|-----------|
-| Plugin Bundle | npm / lokal | `dist/index.js` + Typdefinitionen |
-| Default-Config | Im Bundle | `defaults.yaml` (Step-Confirmation + Role-Presets) |
-| Dokumentation | npm / GitHub | README, CHANGELOG, LICENSE |
+| Plugin Bundle | npm / local | `dist/index.js` + Typdefinitionen |
+| Default Config | Im Bundle | `defaults.yaml` (Step-Confirmation + Role-Presets) |
+| Documentation | npm / GitHub | README, CHANGELOG, LICENSE |
 
-### Außerhalb des Scopes (WIRD NICHT deployt)
+### Outside Scope (what is NOT deployed)
 
 | Nicht deployt | Begründung |
-|---------------|-----------|
+|---------------|------------|
 | **Server / Service** | Keine Server-Komponente — läuft embedded in opencode |
-| **Datenbank** | Session-State ist In-Memory, kein DB-Schema |
+| **Datenbank** | Session-State ist in-memory, kein DB-Schema |
 | **Docker-Container** | Kein Container-Deployment notwendig |
 | **Kubernetes / Helm** | Kein Orchestrierungsbedarf |
 | **API Gateway / Load Balancer** | Keine Netzwerk-Komponenten |
-| **Monitoring / Logging-Infrastruktur** | Nutzt opencode-internes `client.app.log()` |
+| **Monitoring / Logging Infrastruktur** | Nutzt opencode-internes `client.app.log()` |
 | **CI/CD Pipeline** | Nicht Teil des Deployments (nur für Entwicklung) |
 
 ### Sicherheit beim Deployment
@@ -239,25 +239,25 @@ flowchart LR
 |--------|-----------|
 | **Integrität npm** | `package-lock.json`, Signatur-Verifikation (npm v10+) |
 | **Lokale Installation** | Kein Risiko (user-owned directory) |
-| **Config-Datei** | Leserechte nur für User (Dateisystem-Berechtigungen) |
+| **Config-Datei** | Leserechte nur für User (File-System Permissions) |
 | **Plugin-Updates** | `npm outdated` + Renovate für Dependency-Sicherheit |
 
-> **Source Anchor (Quelle):** npm registry integrity. https://docs.npmjs.com/about-registry-integrity-and-signatures. Siehe auch `docs/concepts/03-security.md` (Supply Chain Security).
+> **Source Anchor (Quelle):** npm registry integrity. https://docs.npmjs.com/about-registry-integrity-and-signatures. Siehe auch `docs/08-concepts/03-security.md` (Supply Chain Security).
 
-## 7.7 Load Order & Start-Sequenz
+## 7.7 Load Order & Start-Up Sequence
 
 Beim Start von opencode:
 
 ```
 1. opencode startet Node.js/Bun-Prozess
-2. opencode liest opencode.jsonc → Plugin-Definitionen
+2. opencode liest opencode.jsonc → plugin-Definitionen
 3. opencode scannt .opencode/plugins/ → lokale Plugins
 4. Plugin wird geladen (import/require)
 5. Plugin-Factory wird aufgerufen: Plugin = async (ctx) => { ... }
 6. ConfigLoader liest opencode-semantic-anchors.yaml
 7. RuleEngine wird mit Config initialisiert
 8. Hooks und Tools werden bei opencode registriert
-9. Plugin ist aktiv — wartet auf Tool-Aufrufe
+9. Plugin ist aktiv — wartet auf Tool-Calls
 ```
 
 > **Source Anchor (Quelle):** opencode Load order. https://opencode.ai/docs/plugins#load-order. "Plugins are loaded from all sources and all hooks run in sequence."

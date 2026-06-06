@@ -13,7 +13,7 @@ Our plugin design documentation follows the arc42 template. Initially, a single 
 
 Two developments changed the approach:
 
-1. **Decomposition:** The monolithic design doc was fully decomposed into individual arc42 section files (01-introduction-and-goals.md through 09-glossary.md), plus concepts/ and decisions/ directories. The original `.adoc` master copy was deleted.
+1. **Decomposition:** The monolithic design doc was fully decomposed into individual arc42 section files (01-introduction-and-goals.md through 12-glossary.md), plus 08-concepts/ and 09-adrs/ directories (arc42 sections 8 and 9). The original `.adoc` master copy was deleted.
 
 2. **docToolchain Pipeline:** We adopted docToolchain 3.5.0 as a local build framework that automates the `.md → .adoc` conversion via `exportMarkdown` and generates a microsite via `generateSite` (jBake), deployed to GitHub Pages.
 
@@ -187,8 +187,8 @@ The CI workflow in `.github/workflows/deploy-docs.yml` mirrors the local pipelin
 - 02-architecture-constraints.md (Process Constraints)
 - `docToolchainConfig.groovy` (pipeline configuration)
 - `.github/workflows/deploy-docs.yml` (GitHub Actions deployment)
-- docs/concepts/01-installation.md (§8 Local Documentation Build — step-by-step guide)
-- docs/concepts/02-update-and-maintenance.md (§4 CI/CD Pipeline — docToolchain stage)
+- docs/08-concepts/01-installation.md (§8 Local Documentation Build — step-by-step guide)
+- docs/08-concepts/02-update-and-maintenance.md (§4 CI/CD Pipeline — docToolchain stage)
 - ADR-012: Bilingual Documentation
 - ADR-013: Design-Time Bundling (also uses docToolchain for docs)
 

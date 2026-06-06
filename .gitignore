@@ -38,6 +38,9 @@ TRANSLATION-VERIFICATION-BATCH3.md
 *.log
 npm-debug.log*
 
+# Gradle wrapper cache
+.gradle/
+
 # Project management (not source)
 MASTER-TODO.md
 PLAN.md

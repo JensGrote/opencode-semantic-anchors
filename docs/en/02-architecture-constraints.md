@@ -15,7 +15,7 @@
 
 | Constraint | Rationale |
 |------------|-----------|
-| Open-source (MIT) | Contribution target is LLM-Coding/Semantic-Anchors repo which is MIT-licensed |
+| Open-source (Apache 2.0) | opencode plugin SDK requires Apache 2.0; contribution target is LLM-Coding/Semantic-Anchors repo |
 | Coexists with prompt instructions | Plugin amplifies AGENTS.md rules — does not replace them. Both layers work together. |
 | Ships with role-based presets | Must be useful out-of-the-box for the 12 Semantic-Anchors roles |
 | Local-first | v1 is `.opencode/plugin/` local install. npm publish is v2. |

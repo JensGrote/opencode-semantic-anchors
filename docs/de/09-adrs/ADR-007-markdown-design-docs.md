@@ -13,7 +13,7 @@ Unsere Plugin-Design-Dokumentation folgt der arc42-Vorlage. Zunächst wurde eine
 
 Zwei Entwicklungen änderten den Ansatz:
 
-1. **Dekomposition:** Das monolithische Design-Dokument wurde vollständig in einzelne arc42-Sektionsdateien (01-introduction-and-goals.md bis 09-glossary.md) plus concepts/- und decisions/-Verzeichnisse aufgelöst. Die originale `.adoc`-Master-Kopie wurde gelöscht.
+1. **Dekomposition:** Das monolithische Design-Dokument wurde vollständig in einzelne arc42-Sektionsdateien (01-introduction-and-goals.md bis 12-glossary.md) plus 08-concepts/- und 09-adrs/-Verzeichnisse aufgelöst (arc42 Sektionen 8 und 9). Die originale `.adoc`-Master-Kopie wurde gelöscht.
 
 2. **docToolchain-Pipeline:** Wir haben docToolchain 3.5.0 als lokales Build-Framework eingeführt, das die `.md → .adoc`-Konvertierung via `exportMarkdown` automatisiert und eine Microsite via `generateSite` (jBake) erzeugt, die auf GitHub Pages deployed wird.
 
@@ -187,8 +187,8 @@ Der CI-Workflow in `.github/workflows/deploy-docs.yml` spiegelt die lokale Pipel
 - 02-architecture-constraints.md (Process Constraints)
 - `docToolchainConfig.groovy` (Pipeline-Konfiguration)
 - `.github/workflows/deploy-docs.yml` (GitHub Actions Deployment)
-- docs/concepts/01-installation.md (§8 Local Documentation Build — Schritt-für-Schritt-Anleitung)
-- docs/concepts/02-update-and-maintenance.md (§4 CI/CD Pipeline — docToolchain-Stufe)
+- docs/08-concepts/01-installation.md (§8 Local Documentation Build — Schritt-für-Schritt-Anleitung)
+- docs/08-concepts/02-update-and-maintenance.md (§4 CI/CD Pipeline — docToolchain-Stufe)
 - ADR-012: Bilingual Documentation
 - ADR-013: Design-Time Bundling (nutzt ebenfalls docToolchain für Docs)
 

@@ -119,7 +119,7 @@ A **hierarchical decision rule** applies for translation:
 ## Related
 - ADR-007: Markdown for Design Docs (Format choice; language is a separate concern)
 - `docs/02-architecture-constraints.md` (Language Constraint)
-- `docs/concepts/04-language-and-translation.md` (detailed translation conventions)
+- `docs/08-concepts/04-language-and-translation.md` (detailed translation conventions)
 
 ## Sources
 - LLM-Coding/Semantic-Anchors — docs directory: https://github.com/LLM-Coding/Semantic-Anchors/tree/main/docs — 7 of 14 files have `.de.adoc` parallel version
