@@ -242,7 +242,7 @@ flowchart LR
 | **Config-Datei** | Leserechte nur für User (Dateisystem-Berechtigungen) |
 | **Plugin-Updates** | `npm outdated` + Renovate für Dependency-Sicherheit |
 
-> **Source Anchor (Quelle):** npm registry integrity. https://docs.npmjs.com/about-registry-integrity-and-signatures. Siehe auch `docs/08-concepts/03-security.md` (Supply Chain Security).
+> **Source Anchor (Quelle):** npm registry integrity. https://docs.npmjs.com/about-registry-integrity-and-signatures. Siehe auch `docs/08-Konzepte/03-security.md` (Supply Chain Security).
 
 ## 7.7 Load Order & Start-Sequenz
 

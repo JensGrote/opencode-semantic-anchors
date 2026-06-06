@@ -13,7 +13,7 @@ Our plugin design documentation follows the arc42 template. Initially, a single 
 
 Two developments changed the approach:
 
-1. **Decomposition:** The monolithic design doc was fully decomposed into individual arc42 section files (01-introduction-and-goals.md through 12-glossary.md), plus 08-concepts/ and 09-adrs/ directories (arc42 sections 8 and 9). The original `.adoc` master copy was deleted.
+1. **Decomposition:** The monolithic design doc was fully decomposed into individual arc42 section files (01-introduction-and-goals.md through 12-glossary.md), plus 08-concepts/ and 09-ADRs/ directories (arc42 sections 8 and 9). The original `.adoc` master copy was deleted.
 
 2. **docToolchain Pipeline:** We adopted docToolchain 3.5.0 as a local build framework that automates the `.md → .adoc` conversion via `exportMarkdown` and generates a microsite via `generateSite` (jBake), deployed to GitHub Pages.
 

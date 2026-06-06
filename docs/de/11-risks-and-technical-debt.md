@@ -26,9 +26,9 @@ Der Dokumentationsbuild basiert auf docToolchain 3.5.0 (Java 17, Gradle) mit ein
 - **jBake-Header-Injektion** ist ein benutzerdefiniertes Shell-Script -- Änderungen am Header-Format in docToolchain-Updates wurden den Build brechen
 - **Mermaid -> PlantUML-Konvertierung** ist nicht automatisiert; Beiträge zum Semantic-Anchors-Repository erfordern manuelle Diagrammkonvertierung
 
-**Maßnahme:** Der CI-Workflow (`deploy-docs.yml`) ist die maßgebliche Referenz. Lokale Builds sind in `08-concepts/01-installation.md` schrittweise dokumentiert. Die docToolchain-Version ist in `docToolchainConfig.groovy` fixiert.
+**Maßnahme:** Der CI-Workflow (`deploy-docs.yml`) ist die maßgebliche Referenz. Lokale Builds sind in `08-Konzepte/01-installation.md` schrittweise dokumentiert. Die docToolchain-Version ist in `docToolchainConfig.groovy` fixiert.
 
-**Verwandt:** ADR-007 (Markdown for Design Docs), `08-concepts/01-installation.md`, `.github/workflows/deploy-docs.yml`
+**Verwandt:** ADR-007 (Markdown for Design Docs), `08-Konzepte/01-installation.md`, `.github/workflows/deploy-docs.yml`
 
 ### R2: Synchronisation der zweisprachigen Dokumentation
 
@@ -40,7 +40,7 @@ Die Pflege der Dokumentation in Englisch und Deutsch verdoppelt die Dateianzahl 
 
 **Maßnahme:** Die `TRANSLATION-VERIFICATION*.md`-Scripts erkennen fehlende oder veraltete `.md`-Dateien. Beide Sprachen werden von docToolchain einheitlich gebaut -- eine fehlende DE-Datei erzeugt eine Build-Warnung.
 
-**Verwandt:** ADR-012 (Bilingual Documentation), `08-concepts/04-language-and-translation.md`, `TRANSLATION-VERIFICATION.md`
+**Verwandt:** ADR-012 (Bilingual Documentation), `08-Konzepte/04-language-and-translation.md`, `TRANSLATION-VERIFICATION.md`
 
 ### R3: Evolution der Plugin-SDK-API
 
@@ -93,7 +93,7 @@ Während der Weiterentwicklung des Plugins kann die arc42-Dokumentation von der 
 
 **Maßnahme:** Das Single-Source-of-Truth-Prinzip (alle `.md`-Dateien in `docs/`) hält die Dokumentation nahe am Code. ADRs sind nach Annahme unveränderlich -- überholte Informationen gehen in neue ADRs oder die entsprechenden Abschnittsdateien ein. CI erzwingt keine semantische Dokumentations-Code-Übereinstimmung.
 
-**Verwandt:** ADR-007 (Single Source of Truth Pattern), `08-concepts/02-update-and-maintenance.md`
+**Verwandt:** ADR-007 (Single Source of Truth Pattern), `08-Konzepte/02-update-and-maintenance.md`
 
 ### R7: Einzelentwickler (Bus-Faktor)
 
@@ -103,7 +103,7 @@ Das Projekt wird derzeit von einer einzelnen Person betreut. Hauptrisiken:
 - Wissen über die Architektur, CI-Pipeline und docToolchain-Konfiguration ist konzentriert
 - Community-Beiträge erfordern aktive Review-Kapazitat
 
-**Maßnahme:** Architekturentscheidungen sind in 13 ADRs dokumentiert. Die CI/CD-Pipeline automatisiert Builds, Tests und die Dokumentationsbereitstellung. Die Open-Source-Lizenz lädt zu Community-Beiträgen ein. Kritische Prozesse sind in `08-concepts/` dokumentiert.
+**Maßnahme:** Architekturentscheidungen sind in 13 ADRs dokumentiert. Die CI/CD-Pipeline automatisiert Builds, Tests und die Dokumentationsbereitstellung. Die Open-Source-Lizenz lädt zu Community-Beiträgen ein. Kritische Prozesse sind in `08-Konzepte/` dokumentiert.
 
 ## 11.4 Technische Schulden
 

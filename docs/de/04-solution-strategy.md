@@ -114,7 +114,7 @@ Die Konvertierung nach `.adoc` erfolgt erst bei Beitrag zum Semantic-Anchors-Rep
 
 ### Entscheidung 7: Anchor-Regeln werden zur Entwurfszeit gebündelt (nicht zur Laufzeit abgerufen)
 
-Anchor-Regeln werden **nicht zur Laufzeit von GitHub abgerufen**. Sie werden aus dem Semantic-Anchors-Repository zur Entwurfszeit abgeleitet und als standardmäßiges YAML-Preset im Plugin-Paket gebündelt. Vollständige Begründung, Alternativen und Konsequenzen in [ADR-013](../09-adrs/ADR-013-design-time-bundling.md).
+Anchor-Regeln werden **nicht zur Laufzeit von GitHub abgerufen**. Sie werden aus dem Semantic-Anchors-Repository zur Entwurfszeit abgeleitet und als standardmäßiges YAML-Preset im Plugin-Paket gebündelt. Vollständige Begründung, Alternativen und Konsequenzen in [ADR-013](../09-ADRs/ADR-013-design-time-bundling.md).
 
 ## Qualitätszielumsetzung
 

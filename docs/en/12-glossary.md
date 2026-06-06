@@ -1,4 +1,4 @@
-# 9. Glossary
+# 12. Glossary
 
 ## Domain Terms
 

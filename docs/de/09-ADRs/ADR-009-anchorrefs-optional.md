@@ -114,7 +114,7 @@ Begründung:
 ### Negative Mitigation
 Der Trade-off (Flexibilität vs. Methodenstrenge) wird durch **harte Dokumentation** in Installation und README adressiert:
 
-1. **Installations-Doku** (`docs/08-concepts/01-installation.md` und zukünftiges README.md):
+1. **Installations-Doku** (`docs/08-Konzepte/01-installation.md` und zukünftiges README.md):
    - Primäres Beispiel zeigt Contracts **mit** `anchorRefs` (Best Practice)
    - Sekundäres Beispiel zeigt Contracts **ohne** `anchorRefs` (für projekt-spezifische Regeln)
    - Expliziter Hinweis: "`anchorRefs` ist optional, aber empfohlen — es dokumentiert, welcher Semantic Anchor die Regel begründet"

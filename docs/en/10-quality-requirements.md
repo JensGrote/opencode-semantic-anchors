@@ -1,4 +1,4 @@
-# 8. Quality Requirements
+# 10. Quality Requirements
 
 ## 8.1 Quality Tree
 
