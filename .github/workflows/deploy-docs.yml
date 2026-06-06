@@ -65,6 +65,8 @@ jobs:
               } > "${file}.tmp" && mv "${file}.tmp" "$file"
             fi
           done
+      - name: Remove Markdown sources (conflict with .adoc in jBake)
+        run: find src/docs -name '*.md' -delete
       - name: Generate site
         run: ./dtcw generateSite
       - name: Upload Pages artifact
