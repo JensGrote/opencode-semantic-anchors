@@ -6,6 +6,35 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![GitHub](https://img.shields.io/badge/github-JensGrote/opencode--semantic--anchors-181717?logo=github)](https://github.com/JensGrote/opencode-semantic-anchors)
 
+> [!WARNING]
+> **Deprecated (2026-10-18) — not needed with OpenCode V2.** / **Eingestellt (18.10.2026) — mit OpenCode V2 nicht mehr nötig.**
+>
+> 🇬🇧 OpenCode V2 enforces what this plugin did through plain agent configuration: `steps` is a hard step limit — when it is reached, tools are disabled at the provider (`toolChoice: "none"`) until the next user input. `permission` covers blocking/asking for tools. Semantic Anchors stay vocabulary and go into the agent `prompt` or `instructions`. There is no bypass. Rationale and sources: [ADR-014](docs/en/09-ADRs/ADR-014-discontinue-in-favour-of-v2-agent-config.md).
+>
+> 🇩🇪 OpenCode V2 setzt das, was dieses Plugin tat, über die Agenten-Konfiguration selbst durch: `steps` ist eine harte Schritt-Grenze — ist sie erreicht, sperrt OpenCode die Tools beim Provider (`toolChoice: "none"`) bis zur nächsten Nutzereingabe. `permission` deckt Sperren/Nachfragen für Tools ab. Semantic Anchors bleiben Vokabular und gehören in den `prompt` des Agenten oder in `instructions`. Einen Bypass gibt es nicht. Begründung und Belege: [ADR-014](docs/de/09-ADRs/ADR-014-einstellung-zugunsten-v2-agenten-konfiguration.md).
+>
+> Example / Beispiel (`opencode.json`, syntax per the [OpenCode agents docs](https://opencode.ai/docs/agents/)):
+>
+> ```json
+> {
+>   "$schema": "https://opencode.ai/config.json",
+>   "instructions": ["AGENTS.md"],
+>   "agent": {
+>     "anchored": {
+>       "description": "Step-by-step agent with Semantic Anchors",
+>       "prompt": "After each completed logical step, show the result and ask 'Continue?'. Back every factual claim with a quoted source (Source Anchor).",
+>       "steps": 8,
+>       "permission": {
+>         "edit": "ask",
+>         "bash": { "*": "ask", "git status*": "allow", "git push *": "ask" }
+>       }
+>     }
+>   }
+> }
+> ```
+>
+> The npm package `opencode-semantic-anchors@0.1.0` is marked deprecated. / Das npm-Paket ist als deprecated markiert.
+
 ---
 
 ## 🇬🇧 English
